@@ -1,0 +1,77 @@
+import Foundation
+
+struct Token: Decodable {
+    let access_token: String
+    let token_type: String
+}
+
+@MainActor
+class AuthViewModel: ObservableObject {
+    @Published var isLoggedIn = false
+    @Published var errorMessage: String? = nil
+    @Published var isLoading = false
+
+    private let baseURL = "http://localhost:8000/api/auth"
+
+    func login(username: String, password: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        guard let url = URL(string: "\(baseURL)/login") else {
+            errorMessage = "Invalid URL"
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = ["username": username, "password": password]
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let token = try JSONDecoder().decode(Token.self, from: data)
+            UserDefaults.standard.set(token.access_token, forKey: "access_token")
+            isLoggedIn = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func signup(username: String, name: String, email: String, password: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        guard let url = URL(string: "\(baseURL)/signup") else {
+            errorMessage = "Invalid URL"
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = [
+            "username": username,
+            "name": name,
+            "email": email,
+            "password": password
+        ]
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let token = try JSONDecoder().decode(Token.self, from: data)
+            UserDefaults.standard.set(token.access_token, forKey: "access_token")
+            isLoggedIn = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func logout() {
+        UserDefaults.standard.removeObject(forKey: "access_token")
+        isLoggedIn = false
+    }
+}
