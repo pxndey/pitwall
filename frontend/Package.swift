@@ -12,9 +12,11 @@ let package = Package(
     products: [
         .executable(name: "Pitwall", targets: ["Pitwall"]),
     ],
+    dependencies: [],
     targets: [
         .executableTarget(
             name: "Pitwall",
+            dependencies: [],
             path: "Sources/Pitwall"
         ),
         .testTarget(

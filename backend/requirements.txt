@@ -6,3 +6,5 @@ sqlalchemy>=2.0.0
 pydantic-settings>=2.0.0
 passlib[bcrypt]
 python-jose[cryptography]
+ibm-watsonx-ai
+fastf1

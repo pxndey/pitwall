@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 60 * 24 * 7  # 1 week
 
+    # IBM watsonx.ai
+    watsonx_api_key: str = ""
+    watsonx_project_id: str = ""
+    watsonx_url: str = "https://us-south.ml.cloud.ibm.com"
+
 
 @lru_cache
 def get_settings() -> Settings:

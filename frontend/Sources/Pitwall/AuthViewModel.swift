@@ -39,7 +39,14 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func signup(username: String, name: String, email: String, password: String) async {
+    func signup(
+        username: String,
+        name: String,
+        email: String,
+        password: String,
+        favDriver: String? = nil,
+        favTeam: String? = nil
+    ) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -53,12 +60,19 @@ class AuthViewModel: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: String] = [
+        var body: [String: String] = [
             "username": username,
             "name": name,
             "email": email,
             "password": password
         ]
+        if let favDriver, !favDriver.isEmpty {
+            body["fav_driver"] = favDriver
+        }
+        if let favTeam, !favTeam.isEmpty {
+            body["fav_team"] = favTeam
+        }
+
         do {
             request.httpBody = try JSONEncoder().encode(body)
             let (data, _) = try await URLSession.shared.data(for: request)

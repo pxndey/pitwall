@@ -36,7 +36,7 @@ struct SplashView: View {
         }
         .fullScreenCover(isPresented: $showLogin) {
             if authViewModel.isLoggedIn {
-                HomeView()
+                RootView()
                     .environmentObject(authViewModel)
             } else {
                 LoginView()
