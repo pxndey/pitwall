@@ -37,10 +37,11 @@ def save_message(
 
 
 # ---------------------------------------------------------------------------
-# GET /chat/history — return message history for the current user
+# GET /chat/history — return message history for the current user with pagination
 # ---------------------------------------------------------------------------
 @router.get("/history", response_model=List[ChatMessageOut])
 def get_history(
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -49,6 +50,7 @@ def get_history(
         db.query(ChatHistory)
         .filter(ChatHistory.user_id == current_user.id)
         .order_by(ChatHistory.created_at.asc())
+        .offset(offset)
         .limit(limit)
         .all()
     )
@@ -62,6 +64,7 @@ def get_history(
 class WatsonxBody(BaseModel):
     message: str
     history: List[dict] = []
+    circuit_context: str = ""
 
 
 @router.post("/watsonx")
@@ -79,6 +82,7 @@ def chat_watsonx(
         "username": current_user.username,
         "fav_driver": current_user.fav_driver or "",
         "fav_team": current_user.fav_team or "",
+        "circuit_context": payload.circuit_context,
     }
 
     reply = _router.route(payload.message, payload.history, user_context)

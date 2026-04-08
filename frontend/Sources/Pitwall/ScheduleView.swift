@@ -203,6 +203,299 @@ private func isNext(in races: [F1Race], race: F1Race) -> Bool {
 
 
 // ---------------------------------------------------------------------------
+// MARK: - RaceDetailView
+// ---------------------------------------------------------------------------
+
+private struct RaceDetailView: View {
+    let race: F1Race
+    @State private var showChatSheet = false
+    @State private var notificationScheduled = false
+
+    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
+
+    var body: some View {
+        ZStack {
+            bg.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Text(flag(for: race.circuit.location.country))
+                                .font(.system(size: 32))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(race.raceName)
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundStyle(.white)
+                                Text("Round \(race.round)")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                            Spacer()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    // Circuit Info
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("CIRCUIT INFORMATION")
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(red)
+                            .tracking(1)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            InfoRow(label: "Circuit", value: race.circuit.circuitName)
+                            InfoRow(label: "Location", value: "\(race.circuit.location.locality), \(race.circuit.location.country)")
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    // Date & Time
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("RACE WEEKEND")
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(red)
+                            .tracking(1)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let raceDate = isoDateFormatter.date(from: race.date) {
+                                let fridayDate = Calendar.current.date(byAdding: .day, value: -2, to: raceDate) ?? raceDate
+                                InfoRow(label: "Practice 1", value: formatDateWithDay(fridayDate))
+                                InfoRow(label: "Practice 2", value: formatDateWithDay(Calendar.current.date(byAdding: .day, value: 1, to: fridayDate) ?? fridayDate))
+                                InfoRow(label: "Practice 3 & Qualifying", value: formatDateWithDay(Calendar.current.date(byAdding: .day, value: 2, to: fridayDate) ?? fridayDate))
+                                InfoRow(label: "Race Day", value: formatDateWithDay(raceDate))
+                                if let time = race.time {
+                                    InfoRow(label: "Race Time", value: time)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    // Action Buttons
+                    VStack(spacing: 10) {
+                        Button {
+                            showChatSheet = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "bubble.left.fill")
+                                Text("Ask about this race")
+                            }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(red)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+
+                        Button {
+                            Task {
+                                await NotificationManager.shared.scheduleNotifications(for: race)
+                                notificationScheduled = true
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: notificationScheduled ? "bell.fill" : "bell")
+                                Text(notificationScheduled ? "Notifications scheduled" : "Notify me for all sessions")
+                            }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(notificationScheduled ? Color(white: 0.5) : red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(notificationScheduled ? Color(white: 0.2) : red.opacity(0.5), lineWidth: 1)
+                            )
+                        }
+                        .disabled(notificationScheduled)
+                    }
+                    .padding(.horizontal, 16)
+
+                    Spacer(minLength: 20)
+                }
+                .padding(.vertical, 16)
+            }
+        }
+        .navigationTitle("Race Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(bg, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .sheet(isPresented: $showChatSheet) {
+            RaceContextChatView(race: race)
+        }
+    }
+
+    private func formatDateWithDay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy (EEEE)"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: date)
+    }
+}
+
+private struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color(white: 0.55))
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MARK: - RaceContextChatView
+// ---------------------------------------------------------------------------
+
+private struct RaceContextChatView: View {
+    let race: F1Race
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var chatViewModel = ChatViewModel()
+    @State private var inputText: String = ""
+
+    private let bgTop    = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bgBottom = Color(red: 0.15, green: 0.0, blue: 0.0)
+    private let red      = Color(red: 0.88, green: 0.1, blue: 0.1)
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [bgTop, bgBottom], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button("Close") { dismiss() }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(red)
+                    Spacer()
+                    Text("\(race.raceName) - \(race.circuit.circuitName)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text("")
+                        .font(.system(size: 14))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.1, green: 0.1, blue: 0.1))
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            if chatViewModel.messages.isEmpty && !chatViewModel.isLoading {
+                                VStack(spacing: 8) {
+                                    Text("Race Context Loaded")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
+                                    Text("Ask me anything about \(race.raceName)")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Color(white: 0.6))
+                                }
+                                .padding(.vertical, 32)
+                            } else {
+                                ForEach(chatViewModel.messages) { message in
+                                    messageBubble(message)
+                                        .id(message.id)
+                                }
+                                if chatViewModel.isLoading {
+                                    HStack {
+                                        ProgressView()
+                                            .tint(red)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .id("thinking")
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                    .onChange(of: chatViewModel.messages.count) {
+                        withAnimation {
+                            proxy.scrollTo(chatViewModel.messages.last?.id, anchor: .bottom)
+                        }
+                    }
+                }
+
+                // Input Bar
+                HStack(spacing: 8) {
+                    TextField("Ask about the race...", text: $inputText)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 14))
+
+                    Button {
+                        Task {
+                            await chatViewModel.send(text: inputText, circuitContext: race.circuit.circuitName)
+                            inputText = ""
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color(white: 0.3) : red)
+                    }
+                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.1, green: 0.1, blue: 0.1))
+            }
+        }
+        .task {
+            // Load initial greeting with circuit context
+            await chatViewModel.send(text: "brief me on \(race.raceName) at \(race.circuit.circuitName)", circuitContext: race.circuit.circuitName)
+        }
+    }
+
+    @ViewBuilder
+    private func messageBubble(_ message: ChatViewModel.Message) -> some View {
+        HStack {
+            if message.role == "user" {
+                Spacer()
+                Text(message.content)
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(red.opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+                Text(message.content)
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(red: 0.12, green: 0.12, blue: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                Spacer()
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // MARK: - RaceCardView
 // ---------------------------------------------------------------------------
 
@@ -218,70 +511,74 @@ private struct RaceCardView: View {
     private let red        = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        NavigationLink {
+            RaceDetailView(race: race)
+        } label: {
+            HStack(alignment: .center, spacing: 14) {
 
-            // Round badge
-            ZStack {
-                Circle()
-                    .fill(isPastRace ? Color(white: 0.3) : red)
-                    .frame(width: 36, height: 36)
-                Text(race.round)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-            }
-
-            // Race info
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 5) {
-                    Text(flag(for: race.circuit.location.country))
-                        .font(.system(size: 15))
-                    Text(race.raceName)
-                        .font(.system(size: 16, weight: .semibold))
+                // Round badge
+                ZStack {
+                    Circle()
+                        .fill(isPastRace ? Color(white: 0.3) : red)
+                        .frame(width: 36, height: 36)
+                    Text(race.round)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                }
+
+                // Race info
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text(flag(for: race.circuit.location.country))
+                            .font(.system(size: 15))
+                        Text(race.raceName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                    }
+                    Text(race.circuit.circuitName)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.55))
                         .lineLimit(1)
                 }
-                Text(race.circuit.circuitName)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color(white: 0.55))
-                    .lineLimit(1)
-            }
 
-            Spacer(minLength: 8)
+                Spacer(minLength: 8)
 
-            // Right-side: date range + optional "NEXT RACE" badge
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(weekendRange(from: race.date))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isPastRace ? Color(white: 0.4) : red)
+                // Right-side: date range + optional "NEXT RACE" badge
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(weekendRange(from: race.date))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isPastRace ? Color(white: 0.4) : red)
 
-                if isNextRace {
-                    Text("NEXT RACE")
-                        .font(.system(size: 9, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(red)
-                        .clipShape(Capsule())
+                    if isNextRace {
+                        Text("NEXT RACE")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(red)
+                            .clipShape(Capsule())
+                    }
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isNextRace ? cardBgNext : cardBg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                isNextRace ? red.opacity(0.5) : Color.clear,
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .opacity(isPastRace ? 0.6 : 1.0)
+            .listRowBackground(bg)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isNextRace ? cardBgNext : cardBg)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(
-                            isNextRace ? red.opacity(0.5) : Color.clear,
-                            lineWidth: 1
-                        )
-                )
-        )
-        .opacity(isPastRace ? 0.6 : 1.0)
-        .listRowBackground(bg)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
     }
 }
 
@@ -293,6 +590,7 @@ private struct RaceCardView: View {
 struct ScheduleView: View {
 
     @StateObject private var viewModel = ScheduleViewModel()
+    @State private var allNotificationsScheduled = false
 
     private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
@@ -319,6 +617,20 @@ struct ScheduleView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        Task {
+                            await NotificationManager.shared.scheduleAllUpcoming(races: viewModel.races)
+                            allNotificationsScheduled = true
+                        }
+                    } label: {
+                        Image(systemName: allNotificationsScheduled ? "bell.fill" : "bell")
+                            .foregroundColor(allNotificationsScheduled ? Color(white: 0.4) : red)
+                    }
+                    .disabled(allNotificationsScheduled || viewModel.races.isEmpty)
+                }
+            }
         }
         .task {
             await viewModel.load()

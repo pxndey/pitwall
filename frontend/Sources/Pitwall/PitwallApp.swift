@@ -8,6 +8,9 @@ struct PitwallApp: App {
         WindowGroup {
             SplashView()
                 .environmentObject(authViewModel)
+                .task {
+                    await NotificationManager.shared.requestPermission()
+                }
         }
     }
 }

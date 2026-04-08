@@ -40,6 +40,12 @@ class BriefingAgent(BaseAgent):
         sub_intent = self._classify_sub_intent(message)
         context_data = self._fetch_context(sub_intent, message, user_context)
 
+        # If circuit context is provided, enhance the sub_intent to race-focused
+        circuit_context = user_context.get("circuit_context", "")
+        if circuit_context and sub_intent == "general":
+            sub_intent = "circuit_briefing"
+            context_data = self._fetch_circuit_context(circuit_context, user_context)
+
         system = _SYSTEM_PROMPT.format(
             fav_driver=user_context.get("fav_driver", "not set"),
             fav_team=user_context.get("fav_team", "not set"),
@@ -329,6 +335,76 @@ class BriefingAgent(BaseAgent):
 
         # terminology and general — no data needed, rely on LLM knowledge
         return ""
+
+    # ------------------------------------------------------------------
+    # Circuit Context Fetching
+    # ------------------------------------------------------------------
+
+    def _fetch_circuit_context(self, circuit_name: str, user_context: dict) -> str:
+        """Fetch comprehensive briefing for a specific circuit."""
+        lines = [f"RACE BRIEFING: {circuit_name}"]
+
+        # Get upcoming races to find the circuit
+        schedule = self.data.get_race_schedule()
+        current_race = next(
+            (r for r in schedule if circuit_name.lower() in r.get("circuitName", "").lower()),
+            None,
+        )
+
+        if current_race:
+            lines.append(f"\nUpcoming: {current_race.get('raceName', '')}")
+            lines.append(f"Round {current_race.get('round', '')}")
+            lines.append(f"Date: {current_race.get('date', '')}")
+
+            # Get historical data for this circuit
+            try:
+                current_round = int(current_race.get("round", 0))
+                prev_season = 2024
+                prev_race_data = self.data.get_race_results(prev_season, current_round)
+                if prev_race_data.get("results"):
+                    lines.append(f"\nLAST YEAR'S RESULTS ({prev_season}):")
+                    for r in prev_race_data.get("results", [])[:5]:
+                        lines.append(
+                            f"P{r.get('position', '')} {r.get('givenName', '')} "
+                            f"{r.get('familyName', '')} ({r.get('constructorName', '')})"
+                        )
+
+                # Qualifying data
+                prev_quali = self.data.get_qualifying_results(prev_season, current_round)
+                if prev_quali.get("qualifying"):
+                    lines.append(f"\nPOLE POSITIONS ({prev_season}):")
+                    poles = prev_quali.get("qualifying", [])[:3]
+                    for p in poles:
+                        lines.append(
+                            f"P{p.get('position', '')} {p.get('givenName', '')} "
+                            f"{p.get('familyName', '')} ({p.get('constructorName', '')})"
+                        )
+            except Exception:
+                pass
+
+        # Add driver preference context
+        fav_driver = user_context.get("fav_driver")
+        if fav_driver and current_race:
+            try:
+                current_round = int(current_race.get("round", 0))
+                prev_season = 2024
+                driver_results = self.data.get_driver_season_results(fav_driver, prev_season)
+                driver_at_circuit = next(
+                    (
+                        r for r in driver_results
+                        if int(r.get("race_round", r.get("round", -1))) == current_round
+                    ),
+                    None,
+                )
+                if driver_at_circuit:
+                    lines.append(
+                        f"\nYOUR DRIVER ({fav_driver}) at {circuit_name} ({prev_season}): "
+                        f"P{driver_at_circuit.get('position', '?')}"
+                    )
+            except Exception:
+                pass
+
+        return "\n".join(lines) if len(lines) > 1 else ""
 
     # ------------------------------------------------------------------
     # Helpers

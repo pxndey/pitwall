@@ -7,10 +7,19 @@
 - [Project Overview](#project-overview)
 - [Architecture](#architecture)
 - [Features](#features)
+  - [Chat — Multi-Agent AI](#chat--multi-agent-ai)
   - [H2H Agent](#h2h-agent)
   - [Briefing Agent](#briefing-agent)
+  - [Race Schedule](#race-schedule)
+  - [Race Detail View](#race-detail-view)
+  - [Circuit-Aware Chat](#circuit-aware-chat)
+  - [Chat History with Pagination](#chat-history-with-pagination)
+  - [Push Notifications](#push-notifications)
 - [Backend Setup](#backend-setup)
 - [API Reference](#api-reference)
+  - [Auth](#auth)
+  - [Chat](#chat)
+  - [Health](#health)
 - [Frontend Setup](#frontend-setup)
 - [Agent Intent Routing](#agent-intent-routing)
 - [Project Structure](#project-structure)
@@ -21,6 +30,8 @@
 
 Pitwall is an iOS app that helps F1 fans understand what is happening on track. Users can ask questions in natural language — about driver head-to-heads, championship standings, qualifying results, race recaps, upcoming race previews, or F1 terminology — and receive grounded, data-backed answers powered by IBM Watsonx AI.
 
+The app also provides a full 2025 season schedule with per-race detail pages, circuit-aware AI briefings when starting a conversation from a race page, paginated chat history, and local push notifications for all five sessions of a race weekend — each containing an AI-generated briefing snippet.
+
 | Layer | Technology |
 |---|---|
 | iOS frontend | SwiftUI (iOS 17+, Swift 5.9+) |
@@ -28,7 +39,8 @@ Pitwall is an iOS app that helps F1 fans understand what is happening on track. 
 | Database | SQLite via SQLAlchemy ORM |
 | Auth | JWT (python-jose) + bcrypt passwords |
 | LLM | IBM Watsonx AI — `meta-llama/llama-3-3-70b-instruct` |
-| F1 data | Jolpica/Ergast API via FastF1's Ergast interface |
+| F1 data | Jolpica/Ergast REST API (directly via URLSession + FastF1's Ergast client) |
+| Notifications | `UNUserNotificationCenter` — local scheduled notifications |
 
 ---
 
@@ -39,27 +51,63 @@ iOS App (SwiftUI)
     |
     | HTTP + Bearer JWT
     v
-FastAPI  (/api/chat/watsonx)
+FastAPI  (/api/...)
+    |
+    +-- /auth/*          Authentication & profile management
+    |
+    +-- /chat/watsonx    Multi-agent AI pipeline
+    |       |
+    |       v
+    |   AgentRouter  (keyword-based intent classification)
+    |       |
+    |       +---> H2HAgent          (intent: "h2h")
+    |       |         |
+    |       |         +---> F1DataService  (Ergast via FastF1)
+    |       |         +---> IBM Watsonx LLM
+    |       |
+    |       +---> BriefingAgent     (intent: "briefing" | "general" | "circuit_briefing")
+    |                 |
+    |                 +---> F1DataService  (Ergast via FastF1)
+    |                 +---> IBM Watsonx LLM
+    |
+    +-- /chat/history    Paginated message history (offset + limit)
+    |
+    +-- /chat/message    Persist a single message
+    |
+    +-- /health          Health check (unauthenticated)
+
+iOS ScheduleView
+    |
+    | URLSession  (direct — no backend proxy)
+    v
+Jolpica/Ergast API  (https://api.jolpi.ca/ergast/f1/current.json)
     |
     v
-AgentRouter  (keyword-based intent classification)
+RaceDetailView  →  RaceContextChatView  →  /chat/watsonx (circuit_context set)
+
+NotificationManager
     |
-    +---> H2HAgent          (intent: "h2h")
-    |         |
-    |         +---> F1DataService  (Ergast via FastF1)
-    |         +---> IBM Watsonx LLM
-    |
-    +---> BriefingAgent     (intent: "briefing" | "general")
-              |
-              +---> F1DataService  (Ergast via FastF1)
-              +---> IBM Watsonx LLM
+    +-- UNUserNotificationCenter (local scheduled)
+    +-- /chat/watsonx (pre-fetch AI briefing per session, used as notification body)
 ```
 
 `AgentRouter` runs keyword matching on every incoming message. If no keyword matches, intent defaults to `"general"` and `BriefingAgent` acts as the catch-all. `F1DataService` wraps all Ergast calls with a simple TTL cache (5 min for standings/schedule, 60 min for historical results).
 
+Circuit context flows from the iOS client (set when the user opens chat from a race detail page) through the `/chat/watsonx` request body into `user_context`, where `BriefingAgent` detects it and upgrades a `general` query into a `circuit_briefing` that fetches historical race and qualifying data for that circuit before calling the LLM.
+
 ---
 
 ## Features
+
+### Chat — Multi-Agent AI
+
+The **Home** tab is a full-screen chat interface powered by a multi-agent framework backed by IBM Watsonx. Every message is routed by `AgentRouter` to the most appropriate specialist agent, which fetches live F1 data from the Ergast API before sending a structured prompt to the LLM.
+
+- Conversation history is carried forward (last 6 messages) on each call so context is preserved.
+- Both the user message and the assistant reply are persisted to the database on every turn.
+- On launch, the app loads the latest 30 messages from the server so the conversation is never blank.
+
+---
 
 ### H2H Agent
 
@@ -113,11 +161,131 @@ Handles all informational and general F1 queries. Classifies messages into sub-i
 | `terminology` | what is, what does, explain, meaning, definition, terminology, drs, ers, tyre, tire, undercut, overcut, safety car, vsc, pit stop, slipstream, dirty air, parc ferme, formation lap, delta, blue flag, yellow flag, red flag, black flag | No data fetched — LLM uses its own F1 knowledge |
 | `practice_summary` | practice, fp1, fp2, fp3, free practice | Qualifying + race results for the same weekend (Ergast does not expose practice timing; the LLM uses weekend context to generate a practice briefing) |
 | `session_summary` | summary, summarize, what happened, recap, session | Combined qualifying + race results for the latest completed round |
+| `circuit_briefing` | _(activated automatically when `circuit_context` is set and no specific sub-intent matched)_ | Historical race + qualifying results for the circuit from the prior season; user's favourite driver's result at that circuit |
 | `general` | (catch-all) | No data fetched — open F1 Q&A grounded in LLM knowledge |
 
 The agent injects fetched data as a synthetic prior exchange in the message list so the LLM treats it as verified context rather than training knowledge.
 
 Conversation history: the last 6 messages from the session are carried forward on every call.
+
+---
+
+### Race Schedule
+
+The **Schedule** tab fetches the full 2025 calendar from `https://api.jolpi.ca/ergast/f1/current.json` and renders it as a scrollable list.
+
+- **Country flags** derived from a static map (39 countries covered, with fuzzy fallback).
+- **Weekend range** label ("Mar 14–16") computed from race day by subtracting 2 days for Friday.
+- **"NEXT RACE" badge** highlights the earliest upcoming race.
+- **Past races** are dimmed (opacity 0.6, grey round badge).
+- **Bell icon** in the navigation bar schedules local notifications for all remaining upcoming races in a single tap.
+
+---
+
+### Race Detail View
+
+Tapping any race card drills down to a full detail page with:
+
+**Circuit Information section**
+- Circuit name (e.g. "Albert Park Grand Prix Circuit")
+- Full location string (locality + country)
+
+**Race Weekend section**
+- Practice 1 — Friday, with full date e.g. "Mar 14, 2025 (Friday)"
+- Practice 2 — Friday
+- Practice 3 & Qualifying — Saturday
+- Race Day — Sunday
+- Race start time (UTC) parsed directly from the Jolpica `time` field
+
+**Action buttons**
+- **"Ask about this race"** — opens a race-context chat sheet (see [Circuit-Aware Chat](#circuit-aware-chat))
+- **"Notify me for all sessions"** — schedules five local notifications for the race weekend; the button greys out and shows a filled bell after scheduling to prevent duplicates
+
+---
+
+### Circuit-Aware Chat
+
+When the user taps "Ask about this race" from any race detail page, a full chat sheet opens with the circuit pre-loaded as context. The first message is sent automatically:
+
+```
+brief me on <raceName> at <circuitName>
+```
+
+The `circuit_context` field is included in every message sent from this sheet. On the backend, `BriefingAgent` detects it:
+
+1. Classifies the normal sub-intent first.
+2. If the sub-intent is `general` (i.e. no specific keyword matched), it overrides to `circuit_briefing`.
+3. `_fetch_circuit_context` is called, which:
+   - Finds the race in the current schedule
+   - Fetches the prior season's race results and qualifying for the same round
+   - Appends the user's favourite driver's result at that circuit in the prior season
+4. This data block is injected into the LLM prompt before the user's question.
+
+The result is answers that are automatically scoped to the selected race without the user needing to ask explicitly.
+
+---
+
+### Chat History with Pagination
+
+**Backend** (`GET /api/chat/history`)
+
+The history endpoint now accepts `offset` and `limit` query parameters, enabling cursor-based forward pagination through the full message history stored in the database.
+
+| Param | Type | Default | Range | Description |
+|---|---|---|---|---|
+| `offset` | int | 0 | ≥ 0 | Number of messages to skip from the beginning |
+| `limit` | int | 50 | 1–500 | Max messages to return |
+
+Messages are returned in ascending chronological order (`created_at ASC`). To page backwards through history, increment `offset` by `limit` on each request.
+
+**Frontend** (`ChatViewModel`)
+
+| Method | Behaviour |
+|---|---|
+| `loadHistory()` | Called on view appear. Fetches the 30 most recent messages (`offset=0, limit=30`), replaces `messages`, sets `historyOffset = 30`. |
+| `loadMoreHistory()` | Called when the user taps "Load earlier messages". Fetches the next 30 messages using the current `historyOffset`, prepends them to `messages`, advances `historyOffset`. Sets `hasMoreHistory = false` when fewer than 30 messages are returned. |
+
+A "Load earlier messages" button appears at the top of the chat list whenever `hasMoreHistory` is `true` and there are messages in the view. While fetching, the button shows a spinner and is disabled to prevent duplicate requests.
+
+---
+
+### Push Notifications
+
+Pitwall schedules **local notifications** (no APNs certificate required) for each session of a race weekend. Notification content is AI-generated — the app calls `/chat/watsonx` in advance and uses the first line of the briefing reply (truncated to 150 characters) as the notification body.
+
+**Permission** is requested at app launch via `UNUserNotificationCenter.requestAuthorization`.
+
+**Session schedule** (times are UTC; used as fixed defaults when the Jolpica API does not supply session-specific times):
+
+| Session | Day | Time (UTC) |
+|---|---|---|
+| Practice 1 | Friday (Race Day − 2) | 11:30 |
+| Practice 2 | Friday | 15:00 |
+| Practice 3 | Saturday (Race Day − 1) | 11:30 |
+| Qualifying | Saturday | 15:00 |
+| Race | Sunday (Race Day) | From Jolpica `time` field, or 14:00 |
+
+Each notification fires **30 minutes before** the session start. Notifications are identified as `pitwall-{round}-{session}` (e.g. `pitwall-5-Qualifying`) so they can be individually cancelled or replaced without affecting other sessions.
+
+**User actions:**
+- **Bell icon (Schedule nav bar)** — `scheduleAllUpcoming(races:)` — schedules notifications for every race from the current date onwards in a single tap.
+- **"Notify me for all sessions" button (Race Detail)** — `scheduleNotifications(for:)` — schedules all five sessions for that specific race.
+
+**`NotificationManager` public API:**
+
+```swift
+// Request UNUserNotificationCenter permission
+await NotificationManager.shared.requestPermission()
+
+// Schedule five session notifications for one race
+await NotificationManager.shared.scheduleNotifications(for: race)
+
+// Schedule notifications for all upcoming races
+await NotificationManager.shared.scheduleAllUpcoming(races: races)
+
+// Cancel all Pitwall notifications
+NotificationManager.shared.cancelAll()
+```
 
 ---
 
@@ -300,11 +468,18 @@ Send a message through the multi-agent pipeline. The `AgentRouter` classifies in
   "history": [
     { "role": "user", "content": "string" },
     { "role": "assistant", "content": "string" }
-  ]
+  ],
+  "circuit_context": "string (optional)"
 }
 ```
 
-`history` is optional (defaults to `[]`). Send the last N conversation turns so the agents can maintain context. The iOS client sends up to the last 10 messages.
+| Field | Required | Description |
+|---|---|---|
+| `message` | Yes | The user's current message |
+| `history` | No (default `[]`) | Last N conversation turns for context. iOS client sends up to last 10 messages. |
+| `circuit_context` | No (default `""`) | Circuit name to scope the briefing agent. Set automatically when the user starts a chat from a race detail page. |
+
+When `circuit_context` is non-empty and no specific sub-intent is detected, `BriefingAgent` activates the `circuit_briefing` sub-intent and fetches historical race and qualifying data for that circuit.
 
 **Response `200`:**
 ```json
@@ -315,7 +490,7 @@ Send a message through the multi-agent pipeline. The `AgentRouter` classifies in
 
 #### `GET /api/chat/history`
 
-Retrieve the authenticated user's message history in chronological order.
+Retrieve the authenticated user's message history in chronological order with offset/limit pagination.
 
 **Auth:** Bearer JWT required.
 
@@ -323,7 +498,10 @@ Retrieve the authenticated user's message history in chronological order.
 
 | Param | Type | Default | Range | Description |
 |---|---|---|---|---|
+| `offset` | int | 0 | ≥ 0 | Number of rows to skip from the start of the result set |
 | `limit` | int | 50 | 1–500 | Max messages to return |
+
+**Pagination pattern:** To load the most recent N messages on launch, call `?offset=0&limit=N`. To load older messages, call again with `offset=N` — prepend the results to the UI list.
 
 **Response `200`:**
 ```json
@@ -336,6 +514,8 @@ Retrieve the authenticated user's message history in chronological order.
   }
 ]
 ```
+
+A response shorter than `limit` indicates that no older messages exist (`hasMoreHistory = false`).
 
 ---
 
@@ -397,10 +577,15 @@ The base URL is hardcoded in each networking ViewModel. Change it if you are run
 |---|---|---|
 | `ChatViewModel.swift` | `private let baseURL` | `http://localhost:8000/api` |
 | `AuthViewModel.swift` | Base URL constant | `http://localhost:8000/api` |
+| `NotificationManager.swift` | `private let baseURL` | `http://localhost:8000/api` |
 
-Schedule data (`ScheduleView`) is fetched directly via `URLSession` against the Jolpica/Ergast API — the JolpicaKit Swift package dependency has been removed from the project.
+Schedule data (`ScheduleView`) is fetched directly via `URLSession` against the Jolpica/Ergast API (`https://api.jolpi.ca/ergast/f1/current.json`) — no backend proxy.
 
 The JWT token is stored in `UserDefaults` under the key `"access_token"` and attached as a `Bearer` header on all authenticated requests.
+
+### Notification permissions
+
+On first launch the app calls `UNUserNotificationCenter.requestAuthorization` (alert + sound + badge). Notifications are scheduled as local `UNCalendarNotificationTrigger` events — no Apple Push Notification service certificate or server-side APNs delivery is required. This means notifications fire even without an internet connection as long as they were scheduled while online.
 
 ---
 
@@ -429,6 +614,7 @@ The `AgentRouter.classify_intent` method runs a single pass of keyword matching.
 | `what is`, `what does`, `explain`, `meaning`, `definition`, `terminology`, `drs`, `ers`, `tyre`, `tire`, `undercut`, `overcut`, `safety car`, `vsc`, `pit stop`, `slipstream`, `dirty air`, `parc ferme`, `formation lap`, `delta`, `blue flag`, `yellow flag`, `red flag`, `black flag` | `terminology` |
 | `practice`, `fp1`, `fp2`, `fp3`, `free practice` | `practice_summary` |
 | `summary`, `summarize`, `what happened`, `recap`, `session` | `session_summary` |
+| _(circuit_context set, no keyword matched)_ | `circuit_briefing` |
 | _(none of the above)_ | `general` |
 
 ---
@@ -441,7 +627,8 @@ The `AgentRouter.classify_intent` method runs a single pass of keyword matching.
 │   ├── agents/
 │   │   ├── base.py          # BaseAgent ABC + _call_llm (Watsonx)
 │   │   ├── router.py        # AgentRouter — intent classification + dispatch
-│   │   ├── briefing.py      # BriefingAgent — F1 info, standings, results, terminology
+│   │   ├── briefing.py      # BriefingAgent — F1 info, standings, results, terminology,
+│   │   │                    #   circuit briefings
 │   │   ├── h2h.py           # H2HAgent — driver and constructor comparisons
 │   │   └── data_service.py  # F1DataService — Ergast wrapper with TTL cache
 │   ├── api/
@@ -454,30 +641,41 @@ The `AgentRouter.classify_intent` method runs a single pass of keyword matching.
 │   │   └── init_db.py       # Creates all tables on startup
 │   ├── endpoints/
 │   │   ├── auth.py          # /auth — signup, login, me CRUD
-│   │   ├── chat.py          # /chat — watsonx, history, message
+│   │   ├── chat.py          # /chat — watsonx (circuit_context), history (offset+limit),
+│   │   │                    #   message
 │   │   ├── f1.py            # /f1 — drivers, teams (Jolpica, auxiliary)
 │   │   └── health.py        # GET /health
 │   ├── models/
 │   │   ├── user.py          # User ORM model
-│   │   └── chat_history.py  # ChatHistory ORM model
+│   │   └── chat_history.py  # ChatHistory ORM model (id, user_id, role, chat, created_at)
 │   ├── schemas/
 │   │   ├── user.py          # UserCreate, UserLogin, UserUpdate, UserOut, Token
 │   │   └── chat.py          # ChatMessageCreate, ChatMessageOut
 │   ├── services/
-│   │   └── auth.py          # hash_password, verify_password, create_access_token, get_current_user
-│   ├── main.py              # FastAPI app entry point
+│   │   └── auth.py          # hash_password, verify_password, create_access_token,
+│   │                        #   get_current_user
+│   ├── main.py              # FastAPI app entry point + lifespan (DB init)
 │   └── requirements.txt
 └── frontend/
     ├── Package.swift
     └── Sources/Pitwall/
-        ├── PitwallApp.swift        # App entry, injects AuthViewModel
-        ├── RootView.swift          # Authenticated root, tab bar
-        ├── SplashView.swift        # Animated splash screen
-        ├── AuthViewModel.swift     # Login / signup / logout state
-        ├── LoginView.swift         # Login form
-        ├── SignUpView.swift        # Registration form
-        ├── HomeView.swift          # Home tab
-        ├── ChatViewModel.swift     # Chat session state, Watsonx integration
-        ├── ProfileView.swift       # User profile + favourite driver/team
-        └── ScheduleView.swift      # Upcoming race calendar
+        ├── PitwallApp.swift          # App entry; requests notification permission
+        ├── RootView.swift            # Authenticated root, tab bar (Home, Schedule, Profile)
+        ├── SplashView.swift          # Animated splash screen
+        ├── AuthViewModel.swift       # Login / signup / logout state machine
+        ├── LoginView.swift           # Login form
+        ├── SignUpView.swift          # Registration + fav driver/team form
+        ├── HomeView.swift            # Home tab: full-screen chat + "load earlier" button
+        ├── ChatViewModel.swift       # Chat state: send (circuit_context), loadHistory,
+        │                            #   loadMoreHistory (offset pagination)
+        ├── ProfileView.swift         # User profile + favourite driver/team editing
+        ├── ScheduleView.swift        # Race calendar list → RaceDetailView;
+        │                            #   bell icon schedules all-season notifications
+        │                            #   RaceDetailView: circuit info, weekend dates,
+        │                            #   "Ask about this race" → RaceContextChatView,
+        │                            #   "Notify me for all sessions"
+        │                            #   RaceContextChatView: circuit-scoped chat sheet
+        └── NotificationManager.swift # Singleton; permission, per-race + all-season
+                                     #   local notification scheduling with AI briefing
+                                     #   content; cancelAll()
 ```

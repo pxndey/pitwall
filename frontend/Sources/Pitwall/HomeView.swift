@@ -65,6 +65,34 @@ struct HomeView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 10) {
+                    // Load More button pinned to top when older history exists
+                    if chatViewModel.hasMoreHistory && !chatViewModel.messages.isEmpty {
+                        Button {
+                            Task { await chatViewModel.loadMoreHistory() }
+                        } label: {
+                            HStack(spacing: 6) {
+                                if chatViewModel.isLoadingHistory {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: redAccent))
+                                        .scaleEffect(0.7)
+                                } else {
+                                    Image(systemName: "arrow.up.circle")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(redAccent)
+                                }
+                                Text(chatViewModel.isLoadingHistory ? "Loading…" : "Load earlier messages")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(redAccent)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color(red: 0.12, green: 0.05, blue: 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .disabled(chatViewModel.isLoadingHistory)
+                        .id("loadMore")
+                    }
+
                     if chatViewModel.messages.isEmpty && !chatViewModel.isLoading {
                         emptyState
                     } else {
@@ -83,6 +111,7 @@ struct HomeView: View {
             }
             .task {
                 await chatViewModel.loadHistory()
+                scrollToBottom(proxy: proxy)
             }
             .onChange(of: chatViewModel.messages.count) {
                 scrollToBottom(proxy: proxy)
