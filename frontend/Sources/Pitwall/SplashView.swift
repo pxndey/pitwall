@@ -36,8 +36,12 @@ struct SplashView: View {
         }
         .fullScreenCover(isPresented: $showLogin) {
             if authViewModel.isLoggedIn {
-                RootView()
-                    .environmentObject(authViewModel)
+                if UserDefaults.standard.bool(forKey: "hasSeenOnboarding") {
+                    RootView()
+                        .environmentObject(authViewModel)
+                } else {
+                    OnboardingView()
+                }
             } else {
                 LoginView()
                     .environmentObject(authViewModel)

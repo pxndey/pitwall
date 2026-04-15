@@ -6,6 +6,12 @@ from datetime import date
 
 from agents.base import BaseAgent
 
+LANGUAGE_MAP = {
+    "en": "English",
+    "es": "Spanish",
+    "zh": "Chinese (Simplified)",
+}
+
 _SYSTEM_PROMPT = """\
 You are Pitwall, an expert F1 race engineer and analyst assistant.
 You help fans understand what's happening in Formula 1 — strategy, results, \
@@ -23,6 +29,7 @@ raw numbers — add brief analysis
 
 The user's favourite driver is: {fav_driver}
 The user's favourite team is: {fav_team}
+{language_instruction}
 """
 
 
@@ -46,9 +53,17 @@ class BriefingAgent(BaseAgent):
             sub_intent = "circuit_briefing"
             context_data = self._fetch_circuit_context(circuit_context, user_context)
 
+        language_name = LANGUAGE_MAP.get(
+            user_context.get("language", "en"), "English"
+        )
+        language_instruction = (
+            f"IMPORTANT: You MUST respond entirely in {language_name}."
+        )
+
         system = _SYSTEM_PROMPT.format(
             fav_driver=user_context.get("fav_driver", "not set"),
             fav_team=user_context.get("fav_team", "not set"),
+            language_instruction=language_instruction,
         )
 
         messages: list[dict] = []

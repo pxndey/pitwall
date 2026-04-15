@@ -16,3 +16,4 @@ class ChatMessageOut(BaseModel):
     role: str
     content: str
     created_at: datetime
+    conversation_id: uuid.UUID | None = None

@@ -2,6 +2,7 @@
 
 from db.base import Base
 from models.chat_history import ChatHistory
+from models.conversation import Conversation
 from models.user import User
 
-__all__ = ["Base", "User", "ChatHistory"]
+__all__ = ["Base", "User", "ChatHistory", "Conversation"]

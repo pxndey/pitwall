@@ -15,6 +15,9 @@ class ChatHistory(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         "user", ForeignKey("user.id"), nullable=False
     )
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("conversation.id"), nullable=True
+    )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

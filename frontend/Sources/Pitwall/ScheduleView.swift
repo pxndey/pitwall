@@ -210,6 +210,8 @@ private struct RaceDetailView: View {
     let race: F1Race
     @State private var showChatSheet = false
     @State private var notificationScheduled = false
+    @State private var raceResults: [[String: Any]] = []
+    @State private var isLoadingResults = false
 
     private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
@@ -277,6 +279,68 @@ private struct RaceDetailView: View {
                     }
                     .padding(.horizontal, 16)
 
+                    // Race Results (past races only)
+                    if !raceResults.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("RACE RESULTS")
+                                .font(.system(size: 12, weight: .heavy))
+                                .foregroundStyle(red)
+                                .tracking(1)
+
+                            ForEach(0..<raceResults.count, id: \.self) { index in
+                                let result = raceResults[index]
+                                let position = result["position"] as? String ?? "\(result["position"] as? Int ?? 0)"
+                                let givenName = result["givenName"] as? String ?? ""
+                                let familyName = result["familyName"] as? String ?? ""
+                                let constructor = result["constructorName"] as? String ?? ""
+                                let time = result["time"] as? String ?? ""
+                                let points = result["points"] as? String ?? "\(result["points"] as? Double ?? 0)"
+                                let status = result["status"] as? String ?? ""
+
+                                HStack {
+                                    Text("P\(position)")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(index < 3 ? red : .white)
+                                        .frame(width: 36, alignment: .leading)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("\(givenName) \(familyName)")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(.white)
+                                            .lineLimit(1)
+                                        Text(constructor)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Color(white: 0.55))
+                                    }
+
+                                    Spacer()
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text(time.isEmpty ? status : time)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Color(white: 0.55))
+                                            .lineLimit(1)
+                                        Text("\(points) pts")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+
+                    if isLoadingResults {
+                        ProgressView()
+                            .tint(red)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+
                     // Action Buttons
                     VStack(spacing: 10) {
                         Button {
@@ -332,6 +396,31 @@ private struct RaceDetailView: View {
         .sheet(isPresented: $showChatSheet) {
             RaceContextChatView(race: race)
         }
+        .task {
+            if isPast(race.date) {
+                await fetchRaceResults()
+            }
+        }
+    }
+
+    private func fetchRaceResults() async {
+        isLoadingResults = true
+        defer { isLoadingResults = false }
+
+        guard let url = URL(string: "http://localhost:8000/api/f1/race-results/\(race.season)/\(race.round)") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        let token = UserDefaults.standard.string(forKey: "access_token") ?? ""
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let results = json["results"] as? [[String: Any]] {
+                raceResults = results
+            }
+        } catch {}
     }
 
     private func formatDateWithDay(_ date: Date) -> String {
@@ -488,10 +577,25 @@ private struct RaceContextChatView: View {
                     .padding(.vertical, 10)
                     .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .contextMenu {
+                        Button {
+                            shareText(message.content)
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    }
                 Spacer()
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func shareText(_ text: String) {
+        let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let root = scene.windows.first?.rootViewController {
+            root.present(av, animated: true)
+        }
     }
 }
 

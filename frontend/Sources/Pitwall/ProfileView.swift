@@ -9,6 +9,7 @@ private struct UserOut: Decodable {
     let email: String?
     let fav_driver: String?
     let fav_team: String?
+    let language: String?
     let created_at: String?
 }
 
@@ -21,6 +22,7 @@ class ProfileViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var favDriver: String = ""
     @Published var favTeam: String = ""
+    @Published var language: String = "en"
     @Published var createdAt: Date? = nil
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
@@ -58,6 +60,7 @@ class ProfileViewModel: ObservableObject {
             email = user.email ?? ""
             favDriver = user.fav_driver ?? ""
             favTeam = user.fav_team ?? ""
+            language = user.language ?? "en"
             if let raw = user.created_at {
                 createdAt = parseDate(raw)
             }
@@ -71,7 +74,8 @@ class ProfileViewModel: ObservableObject {
         email: String?,
         password: String?,
         favDriver: String?,
-        favTeam: String?
+        favTeam: String?,
+        language: String? = nil
     ) async {
         guard let token else {
             errorMessage = "Not authenticated"
@@ -93,6 +97,7 @@ class ProfileViewModel: ObservableObject {
         if let password, !password.isEmpty { body["password"] = password }
         if let favDriver, !favDriver.isEmpty { body["fav_driver"] = favDriver }
         if let favTeam, !favTeam.isEmpty { body["fav_team"] = favTeam }
+        if let language, !language.isEmpty { body["language"] = language }
 
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
@@ -107,6 +112,7 @@ class ProfileViewModel: ObservableObject {
             self.email = user.email ?? ""
             self.favDriver = user.fav_driver ?? ""
             self.favTeam = user.fav_team ?? ""
+            self.language = user.language ?? "en"
             successMessage = "Profile updated successfully"
         } catch {
             errorMessage = error.localizedDescription
@@ -344,6 +350,13 @@ struct ProfileView: View {
     @State private var showDeleteAlert = false
     @State private var showDriverSheet = false
     @State private var showTeamSheet = false
+    @State private var showLanguageSheet = false
+
+    private let languageMap: [String: String] = [
+        "en": "English",
+        "es": "Espanol",
+        "zh": "中文 (简体)"
+    ]
 
     private var memberSinceText: String {
         guard let date = profileViewModel.createdAt else { return "Member since —" }
@@ -405,6 +418,14 @@ struct ProfileView: View {
                                 value: profileViewModel.favTeam.isEmpty ? "Not set" : profileViewModel.favTeam
                             ) {
                                 showTeamSheet = true
+                            }
+
+                            preferenceRow(
+                                icon: "globe",
+                                label: "AI Response Language",
+                                value: languageMap[profileViewModel.language] ?? "English"
+                            ) {
+                                showLanguageSheet = true
                             }
                         }
                         .listRowBackground(rowBg)
@@ -472,6 +493,9 @@ struct ProfileView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showLanguageSheet) {
+                LanguagePickerSheet(profileViewModel: profileViewModel)
+            }
             .alert("Delete Account", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
                     Task {
@@ -529,6 +553,71 @@ struct ProfileView: View {
                 .foregroundStyle(.gray)
                 .font(.caption)
         }
+    }
+}
+
+// MARK: - LanguagePickerSheet
+
+private struct LanguagePickerSheet: View {
+    @ObservedObject var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    private let accent = Color(red: 0.88, green: 0.1, blue: 0.1)
+    private let bg = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let rowBg = Color(red: 0.1, green: 0.1, blue: 0.1)
+
+    private let options: [(code: String, label: String)] = [
+        ("en", "English"),
+        ("es", "Espanol"),
+        ("zh", "中文 (简体)")
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                bg.ignoresSafeArea()
+                List {
+                    ForEach(options, id: \.code) { option in
+                        Button {
+                            Task {
+                                await profileViewModel.updateProfile(
+                                    name: nil,
+                                    email: nil,
+                                    password: nil,
+                                    favDriver: nil,
+                                    favTeam: nil,
+                                    language: option.code
+                                )
+                                dismiss()
+                            }
+                        } label: {
+                            HStack {
+                                Text(option.label)
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                if profileViewModel.language == option.code {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(accent)
+                                }
+                            }
+                        }
+                        .listRowBackground(rowBg)
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("AI Response Language")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(accent)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 

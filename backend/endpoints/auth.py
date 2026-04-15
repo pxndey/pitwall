@@ -33,6 +33,7 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> Token:
         password=hash_password(payload.password),
         fav_driver=payload.fav_driver,
         fav_team=payload.fav_team,
+        language=payload.language or "en",
     )
     db.add(user)
     try:
@@ -83,6 +84,8 @@ def update_me(
         current_user.fav_driver = payload.fav_driver
     if payload.fav_team is not None:
         current_user.fav_team = payload.fav_team
+    if payload.language is not None:
+        current_user.language = payload.language
 
     try:
         db.commit()

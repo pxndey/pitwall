@@ -35,6 +35,11 @@ struct RootView: View {
                     Label("Schedule", systemImage: "calendar")
                 }
 
+            StandingsView()
+                .tabItem {
+                    Label("Standings", systemImage: "trophy.fill")
+                }
+
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")

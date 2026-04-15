@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     password: str
     fav_driver: Optional[str] = None
     fav_team: Optional[str] = None
+    language: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -25,6 +26,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     fav_driver: Optional[str] = None
     fav_team: Optional[str] = None
+    language: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -36,6 +38,7 @@ class UserOut(BaseModel):
     email: str
     fav_driver: Optional[str] = None
     fav_team: Optional[str] = None
+    language: str = "en"
     created_at: datetime
 
 

@@ -6,6 +6,12 @@ import re
 
 from agents.base import BaseAgent
 
+LANGUAGE_MAP = {
+    "en": "English",
+    "es": "Spanish",
+    "zh": "Chinese (Simplified)",
+}
+
 
 class H2HAgent(BaseAgent):
     """Compares two F1 drivers or two constructors using season data."""
@@ -106,7 +112,7 @@ class H2HAgent(BaseAgent):
             _ctype, data = result
             formatted = self._format_driver_h2h(data, season)
             return self._generate_response(
-                formatted, history, message, fav_driver, fav_team
+                formatted, history, message, fav_driver, fav_team, user_context
             )
 
         result = self._try_constructor_comparison(message, season, fav_team)
@@ -114,7 +120,7 @@ class H2HAgent(BaseAgent):
             _ctype, data = result
             formatted = self._format_constructor_h2h(data, season)
             return self._generate_response(
-                formatted, history, message, fav_driver, fav_team
+                formatted, history, message, fav_driver, fav_team, user_context
             )
 
         # Could not determine entities.
@@ -379,7 +385,15 @@ class H2HAgent(BaseAgent):
         user_message: str,
         fav_driver: str,
         fav_team: str,
+        user_context: dict | None = None,
     ) -> str:
+        language_name = LANGUAGE_MAP.get(
+            (user_context or {}).get("language", "en"), "English"
+        )
+        language_instruction = (
+            f"IMPORTANT: You MUST respond entirely in {language_name}."
+        )
+
         system_prompt = (
             "You are Pitwall's Head-to-Head analyst. You compare F1 drivers "
             "and teams using real data.\n"
@@ -391,7 +405,8 @@ class H2HAgent(BaseAgent):
             "Keep responses concise but informative — around 150-250 words.\n"
             f"The user's favourite driver is "
             f"{fav_driver or 'not specified'} and favourite team is "
-            f"{fav_team or 'not specified'}."
+            f"{fav_team or 'not specified'}.\n"
+            f"{language_instruction}"
         )
 
         # Carry over recent conversation history then append current turn.

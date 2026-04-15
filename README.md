@@ -11,14 +11,22 @@
   - [H2H Agent](#h2h-agent)
   - [Briefing Agent](#briefing-agent)
   - [Race Schedule](#race-schedule)
-  - [Race Detail View](#race-detail-view)
+  - [Race Detail View & Results](#race-detail-view--results)
+  - [Championship Standings Tab](#championship-standings-tab)
+  - [Favourite Driver Dashboard](#favourite-driver-dashboard)
+  - [Conversation Threads](#conversation-threads)
   - [Circuit-Aware Chat](#circuit-aware-chat)
   - [Chat History with Pagination](#chat-history-with-pagination)
+  - [Search Chat History](#search-chat-history)
+  - [Share Insights](#share-insights)
+  - [Onboarding Flow](#onboarding-flow)
   - [Push Notifications](#push-notifications)
+  - [Multi-Language Support](#multi-language-support)
 - [Backend Setup](#backend-setup)
 - [API Reference](#api-reference)
   - [Auth](#auth)
   - [Chat](#chat)
+  - [F1 Data](#f1-data)
   - [Health](#health)
 - [Frontend Setup](#frontend-setup)
 - [Agent Intent Routing](#agent-intent-routing)
@@ -30,7 +38,7 @@
 
 Pitwall is an iOS app that helps F1 fans understand what is happening on track. Users can ask questions in natural language — about driver head-to-heads, championship standings, qualifying results, race recaps, upcoming race previews, or F1 terminology — and receive grounded, data-backed answers powered by IBM Watsonx AI.
 
-The app also provides a full 2025 season schedule with per-race detail pages, circuit-aware AI briefings when starting a conversation from a race page, paginated chat history, and local push notifications for all five sessions of a race weekend — each containing an AI-generated briefing snippet.
+The app also provides a full 2025 season schedule with per-race detail pages and past race results, a championship standings tab, a favourite driver dashboard card, conversation threads for organizing chats, circuit-aware AI briefings, full-text search across chat history, message sharing, a first-launch onboarding flow, local push notifications with AI-generated briefings, and multi-language support (English, Spanish, Chinese).
 
 | Layer | Technology |
 |---|---|
@@ -182,7 +190,7 @@ The **Schedule** tab fetches the full 2025 calendar from `https://api.jolpi.ca/e
 
 ---
 
-### Race Detail View
+### Race Detail View & Results
 
 Tapping any race card drills down to a full detail page with:
 
@@ -197,9 +205,64 @@ Tapping any race card drills down to a full detail page with:
 - Race Day — Sunday
 - Race start time (UTC) parsed directly from the Jolpica `time` field
 
+**Race Results section** (past races only)
+- Automatically fetched via `GET /api/f1/race-results/{season}/{round}` when the race date is in the past
+- Shows finishing position, driver name, constructor, time/gap, points, and status for all classified drivers
+- Loading spinner while results are being fetched
+
 **Action buttons**
 - **"Ask about this race"** — opens a race-context chat sheet (see [Circuit-Aware Chat](#circuit-aware-chat))
 - **"Notify me for all sessions"** — schedules five local notifications for the race weekend; the button greys out and shows a filled bell after scheduling to prevent duplicates
+
+---
+
+### Championship Standings Tab
+
+A dedicated tab (trophy icon) showing live driver and constructor championship standings.
+
+- **Segmented picker** at the top toggles between "Drivers" and "Constructors"
+- **Driver standings**: position badge (gold P1, silver P2, bronze P3, red for rest), driver name, constructor name, points and wins
+- **Constructor standings**: position badge, team name, points and wins
+- **Pull-to-refresh** via `.refreshable`
+- Data fetched from `GET /api/f1/standings/drivers` and `GET /api/f1/standings/constructors`
+
+---
+
+### Favourite Driver Dashboard
+
+A persistent card at the top of the Home chat screen showing at-a-glance stats for the user's favourite driver.
+
+- **Championship position** — large badge (e.g. "P1")
+- **Championship points** — current season total
+- **Last race** — race name and finishing position
+- **Next race** — upcoming race name, circuit, and date
+- Card is only shown when the user has set a favourite driver in their profile
+- Data fetched from `GET /api/f1/driver-dashboard` which composites standings, season results, and schedule data
+
+---
+
+### Conversation Threads
+
+Chat history is organized into named conversations (threads), allowing users to keep different topics separate.
+
+**Backend model**: `Conversation` table with `id`, `title`, `user_id`, `created_at`, `updated_at`. The `ChatHistory` table has an optional `conversation_id` FK.
+
+**Auto-creation**: When a user sends a message without an active conversation, a new conversation is automatically created with the first 50 characters of the message as the title.
+
+**Thread picker**: A list button in the Home nav header opens the conversation list, showing:
+- Conversation title and creation date
+- Message count badge
+- Active conversation highlighted with a red border
+- Swipe-to-delete on each conversation
+- "New Chat" button to start a fresh thread
+
+**API endpoints**:
+- `POST /api/chat/conversations` — create
+- `GET /api/chat/conversations` — list (ordered by `updated_at desc`)
+- `GET /api/chat/conversations/{id}` — single thread with message count
+- `PUT /api/chat/conversations/{id}` — rename
+- `DELETE /api/chat/conversations/{id}` — delete thread and all messages
+- `GET /api/chat/conversations/{id}/messages` — paginated messages for a thread
 
 ---
 
@@ -286,6 +349,51 @@ await NotificationManager.shared.scheduleAllUpcoming(races: races)
 // Cancel all Pitwall notifications
 NotificationManager.shared.cancelAll()
 ```
+
+---
+
+### Search Chat History
+
+Full-text search across all past messages.
+
+**Backend**: `GET /api/chat/search?q=<query>&offset=0&limit=20` performs a case-insensitive `LIKE` search on the `ChatHistory.chat` column, filtered to the authenticated user, ordered by `created_at DESC`.
+
+**Frontend**: A magnifying glass button in the Home nav header toggles a search overlay. As the user types, a debounced search (0.5s) queries the backend and displays matching messages with role indicators and timestamps. Tapping a result dismisses the search overlay.
+
+---
+
+### Share Insights
+
+Long-press any assistant message bubble (in both the Home chat and the race-context chat) to access a "Share" context menu. This presents the standard iOS share sheet (`UIActivityViewController`) with the message text, allowing users to copy, AirDrop, or share to any app.
+
+---
+
+### Onboarding Flow
+
+A 4-page swipeable walkthrough shown on first launch after login:
+
+1. **Welcome** — app logo and tagline
+2. **AI Race Engineer** — explains the chat feature
+3. **Race Schedule** — explains schedule tracking and notifications
+4. **Your Preferences** — prompts the user to set favourite driver/team
+
+The "Get Started" button on the final page sets `hasSeenOnboarding` in UserDefaults and transitions to the main app. The onboarding is only shown once; subsequent launches go directly to the tab interface.
+
+---
+
+### Multi-Language Support
+
+AI responses can be configured to reply in English, Spanish, or Chinese (Simplified).
+
+**Backend**: The `User` model has a `language` column (default `"en"`). Supported values: `"en"`, `"es"`, `"zh"`. The language is passed to both `BriefingAgent` and `H2HAgent` via the `user_context` dict. Each agent injects a language instruction into the LLM system prompt:
+
+```
+IMPORTANT: You MUST respond entirely in {language_name}.
+```
+
+**Frontend**: A "AI Response Language" picker in the Profile screen's F1 Preferences section. Three options: English, Espanol, Chinese (Simplified). Selecting a language calls `PUT /api/auth/me` with the `language` field.
+
+Note: Only AI-generated responses change language. The app UI (labels, tab names, buttons) remains in English.
 
 ---
 
@@ -545,6 +653,80 @@ Persist a single message to the database without going through the agent pipelin
 
 ---
 
+### Chat — Conversations
+
+#### `POST /api/chat/conversations`
+
+Create a new conversation thread. **Auth:** Bearer JWT required.
+
+**Request body:** `{ "title": "string (default: 'New Chat')" }`
+
+**Response `201`:** `{ "id": "uuid", "title": "string", "created_at": "datetime", "updated_at": "datetime", "message_count": 0 }`
+
+#### `GET /api/chat/conversations`
+
+List all conversations for the authenticated user, ordered by `updated_at DESC`. Each entry includes a `message_count`. **Auth required.**
+
+#### `PUT /api/chat/conversations/{id}`
+
+Rename a conversation. **Auth required.** Body: `{ "title": "string" }`
+
+#### `DELETE /api/chat/conversations/{id}`
+
+Delete a conversation and all its messages. **Auth required.**
+
+#### `GET /api/chat/conversations/{id}/messages`
+
+Paginated messages for a specific thread. Supports `offset` and `limit` params (same as `/chat/history`). **Auth required.**
+
+---
+
+### Chat — Search
+
+#### `GET /api/chat/search`
+
+Full-text search across the user's chat history. **Auth required.**
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `q` | string | _(required)_ | Search query (min 1 char) |
+| `offset` | int | 0 | Pagination offset |
+| `limit` | int | 20 | Max results (1-100) |
+
+Results ordered by `created_at DESC`. Response format: `List[ChatMessageOut]`.
+
+---
+
+### F1 Data
+
+#### `GET /api/f1/standings/drivers`
+
+Current driver championship standings. **Auth required.**
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `season` | int | 2025 | Season year |
+
+Returns array of `{ position, givenName, familyName, constructorName, points, wins }`.
+
+#### `GET /api/f1/standings/constructors`
+
+Current constructor championship standings. **Auth required.** Same `season` param.
+
+#### `GET /api/f1/race-results/{season}/{round_num}`
+
+Full race results for a specific round. **Auth required.** Returns `{ race_info: {...}, results: [...] }`.
+
+#### `GET /api/f1/driver-dashboard`
+
+Composite dashboard for the authenticated user's favourite driver. **Auth required.** Returns championship position, points, last race result, and next race info.
+
+#### `GET /api/f1/next-race`
+
+Next upcoming race. **Unauthenticated.** Returns `{ raceName, circuitName, date, round, country }`.
+
+---
+
 ### Health
 
 #### `GET /health`
@@ -625,57 +807,60 @@ The `AgentRouter.classify_intent` method runs a single pass of keyword matching.
 .
 ├── backend/
 │   ├── agents/
-│   │   ├── base.py          # BaseAgent ABC + _call_llm (Watsonx)
-│   │   ├── router.py        # AgentRouter — intent classification + dispatch
-│   │   ├── briefing.py      # BriefingAgent — F1 info, standings, results, terminology,
-│   │   │                    #   circuit briefings
-│   │   ├── h2h.py           # H2HAgent — driver and constructor comparisons
-│   │   └── data_service.py  # F1DataService — Ergast wrapper with TTL cache
+│   │   ├── base.py            # BaseAgent ABC + _call_llm (Watsonx)
+│   │   ├── router.py          # AgentRouter — intent classification + dispatch
+│   │   ├── briefing.py        # BriefingAgent — F1 info, circuit briefings,
+│   │   │                      #   multi-language support
+│   │   ├── h2h.py             # H2HAgent — driver/constructor comparisons,
+│   │   │                      #   multi-language support
+│   │   └── data_service.py    # F1DataService — Ergast wrapper with TTL cache
 │   ├── api/
-│   │   └── router.py        # Composes auth + chat routers under /api
+│   │   └── router.py          # Composes auth + chat + f1 routers under /api
 │   ├── core/
-│   │   └── config.py        # Pydantic-settings config (reads backend/.env)
+│   │   └── config.py          # Pydantic-settings config (reads backend/.env)
 │   ├── db/
-│   │   ├── session.py       # SQLAlchemy engine + session factory
-│   │   ├── base.py          # Declarative base
-│   │   └── init_db.py       # Creates all tables on startup
+│   │   ├── session.py         # SQLAlchemy engine + session factory
+│   │   ├── base.py            # Declarative base
+│   │   └── init_db.py         # Creates tables + ALTER TABLE migrations
 │   ├── endpoints/
-│   │   ├── auth.py          # /auth — signup, login, me CRUD
-│   │   ├── chat.py          # /chat — watsonx (circuit_context), history (offset+limit),
-│   │   │                    #   message
-│   │   ├── f1.py            # /f1 — drivers, teams (Jolpica, auxiliary)
-│   │   └── health.py        # GET /health
+│   │   ├── auth.py            # /auth — signup, login, me CRUD (+ language)
+│   │   ├── chat.py            # /chat — watsonx, history, conversations CRUD,
+│   │   │                      #   search, message persistence
+│   │   ├── f1.py              # /f1 — standings, race-results, driver-dashboard,
+│   │   │                      #   next-race, drivers, teams
+│   │   └── health.py          # GET /health
 │   ├── models/
-│   │   ├── user.py          # User ORM model
-│   │   └── chat_history.py  # ChatHistory ORM model (id, user_id, role, chat, created_at)
+│   │   ├── user.py            # User ORM (+ language column)
+│   │   ├── chat_history.py    # ChatHistory ORM (+ conversation_id FK)
+│   │   └── conversation.py    # Conversation ORM (threads)
 │   ├── schemas/
-│   │   ├── user.py          # UserCreate, UserLogin, UserUpdate, UserOut, Token
-│   │   └── chat.py          # ChatMessageCreate, ChatMessageOut
+│   │   ├── user.py            # UserCreate/Login/Update/Out, Token (+ language)
+│   │   ├── chat.py            # ChatMessageCreate/Out (+ conversation_id)
+│   │   └── conversation.py    # ConversationCreate/Update/Out
 │   ├── services/
-│   │   └── auth.py          # hash_password, verify_password, create_access_token,
-│   │                        #   get_current_user
-│   ├── main.py              # FastAPI app entry point + lifespan (DB init)
+│   │   └── auth.py            # Password hashing, JWT, get_current_user
+│   ├── main.py                # FastAPI app entry point + lifespan (DB init)
 │   └── requirements.txt
 └── frontend/
     ├── Package.swift
     └── Sources/Pitwall/
-        ├── PitwallApp.swift          # App entry; requests notification permission
-        ├── RootView.swift            # Authenticated root, tab bar (Home, Schedule, Profile)
-        ├── SplashView.swift          # Animated splash screen
-        ├── AuthViewModel.swift       # Login / signup / logout state machine
-        ├── LoginView.swift           # Login form
-        ├── SignUpView.swift          # Registration + fav driver/team form
-        ├── HomeView.swift            # Home tab: full-screen chat + "load earlier" button
-        ├── ChatViewModel.swift       # Chat state: send (circuit_context), loadHistory,
-        │                            #   loadMoreHistory (offset pagination)
-        ├── ProfileView.swift         # User profile + favourite driver/team editing
-        ├── ScheduleView.swift        # Race calendar list → RaceDetailView;
-        │                            #   bell icon schedules all-season notifications
-        │                            #   RaceDetailView: circuit info, weekend dates,
-        │                            #   "Ask about this race" → RaceContextChatView,
-        │                            #   "Notify me for all sessions"
-        │                            #   RaceContextChatView: circuit-scoped chat sheet
-        └── NotificationManager.swift # Singleton; permission, per-race + all-season
-                                     #   local notification scheduling with AI briefing
-                                     #   content; cancelAll()
+        ├── PitwallApp.swift            # App entry; notification permission
+        ├── RootView.swift              # Tab bar: Home, Schedule, Standings, Profile
+        ├── SplashView.swift            # Splash → onboarding (first launch) → main
+        ├── OnboardingView.swift        # 4-page first-launch walkthrough
+        ├── AuthViewModel.swift         # Login / signup / logout
+        ├── LoginView.swift             # Login form
+        ├── SignUpView.swift            # Registration + F1 preferences
+        ├── HomeView.swift              # Chat UI: dashboard card, message bubbles
+        │                              #   (share context menu), thread picker,
+        │                              #   search overlay, load-more pagination
+        ├── ChatViewModel.swift         # Send (circuit_context, conversation_id),
+        │                              #   history pagination, conversation CRUD,
+        │                              #   search
+        ├── ConversationListView.swift  # Thread list: create, switch, delete
+        ├── StandingsView.swift         # Driver/constructor standings tab
+        ├── ProfileView.swift           # Profile + preferences + language picker
+        ├── ScheduleView.swift          # Race calendar, RaceDetailView (+ results),
+        │                              #   RaceContextChatView (+ share)
+        └── NotificationManager.swift   # Local notifications with AI briefings
 ```
