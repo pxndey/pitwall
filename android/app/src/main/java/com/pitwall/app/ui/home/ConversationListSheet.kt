@@ -104,11 +104,11 @@ fun ConversationListSheet(
                                 }
                                 IconButton(
                                     onClick = { onDelete(convo.id) },
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(44.dp),
                                 ) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Delete",
+                                        contentDescription = "Delete conversation",
                                         tint = PitwallTertiaryText,
                                         modifier = Modifier.size(18.dp),
                                     )

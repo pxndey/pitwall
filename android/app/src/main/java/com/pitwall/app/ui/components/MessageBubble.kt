@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.pitwall.app.ui.theme.PitwallCard
+import com.pitwall.app.ui.theme.PitwallCodeBg
 import com.pitwall.app.ui.theme.PitwallRed
 
 @Composable
@@ -89,7 +90,7 @@ fun parseMarkdown(text: String): AnnotatedString {
                 text[i] == '`' -> {
                     val end = text.indexOf('`', i + 1)
                     if (end != -1) {
-                        withStyle(SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0xFF2A2A2A))) {
+                        withStyle(SpanStyle(fontFamily = FontFamily.Monospace, background = PitwallCodeBg)) {
                             append(text.substring(i + 1, end))
                         }
                         i = end + 1

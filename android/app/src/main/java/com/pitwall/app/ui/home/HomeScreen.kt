@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -134,7 +136,10 @@ fun HomeScreen(
                                 text = msg.content.take(100),
                                 color = PitwallSecondaryText,
                                 fontSize = 13.sp,
-                                modifier = Modifier.padding(vertical = 4.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .padding(vertical = 8.dp),
                                 maxLines = 2,
                             )
                             HorizontalDivider(color = PitwallCard)
@@ -217,7 +222,9 @@ fun HomeScreen(
                 if (uiState.isLoading && uiState.streamingText.isEmpty()) {
                     item {
                         Row(
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                            modifier = Modifier
+                                .padding(start = 4.dp, top = 4.dp)
+                                .semantics { contentDescription = "Generating response" },
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             repeat(3) {
@@ -325,7 +332,8 @@ fun DashboardCard(dashboard: com.pitwall.app.data.remote.model.DriverDashboard) 
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(PitwallRed),
+                            .background(PitwallRed)
+                            .semantics { contentDescription = "Championship position ${dashboard.championshipPosition}" },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
