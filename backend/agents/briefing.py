@@ -94,6 +94,54 @@ class BriefingAgent(BaseAgent):
 
         return self._call_llm(system, messages)
 
+    def handle_stream(self, message: str, history: list, user_context: dict):
+        """Stream response tokens for briefing queries."""
+        sub_intent = self._classify_sub_intent(message)
+        context_data = self._fetch_context(sub_intent, message, user_context)
+
+        circuit_context = user_context.get("circuit_context", "")
+        if circuit_context and sub_intent == "general":
+            sub_intent = "circuit_briefing"
+            context_data = self._fetch_circuit_context(circuit_context, user_context)
+
+        language_name = LANGUAGE_MAP.get(
+            user_context.get("language", "en"), "English"
+        )
+        language_instruction = (
+            f"IMPORTANT: You MUST respond entirely in {language_name}."
+        )
+
+        system = _SYSTEM_PROMPT.format(
+            fav_driver=user_context.get("fav_driver", "not set"),
+            fav_team=user_context.get("fav_team", "not set"),
+            language_instruction=language_instruction,
+        )
+
+        messages: list[dict] = []
+
+        if context_data:
+            messages.append({
+                "role": "user",
+                "content": (
+                    "[F1 DATA CONTEXT — use this data to answer accurately]\n"
+                    + context_data
+                ),
+            })
+            messages.append({
+                "role": "assistant",
+                "content": "Got it, I'll use this data to answer.",
+            })
+
+        for h in history[-6:]:
+            messages.append({
+                "role": h.get("role", "user"),
+                "content": h.get("content", ""),
+            })
+
+        messages.append({"role": "user", "content": message})
+
+        yield from self._call_llm_stream(system, messages)
+
     # ------------------------------------------------------------------
     # Sub-intent classification (keyword-based, fast)
     # ------------------------------------------------------------------

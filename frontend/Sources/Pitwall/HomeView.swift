@@ -118,14 +118,33 @@ struct HomeView: View {
                                 messageBubble(message)
                                     .id(message.id)
                             }
-                            if chatViewModel.isLoading {
+                            if chatViewModel.isLoading && chatViewModel.streamingText.isEmpty {
                                 thinkingBubble
                                     .id("thinking")
+                            }
+                            // Streaming text bubble
+                            if !chatViewModel.streamingText.isEmpty {
+                                HStack {
+                                    Text(markdownContent(chatViewModel.streamingText))
+                                        .font(.body)
+                                        .foregroundColor(.white)
+                                        .padding(12)
+                                        .background(bubbleDark)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: .leading)
+                                    Spacer(minLength: 60)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .id("streaming")
                             }
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
+                }
+                .refreshable {
+                    await chatViewModel.loadHistory()
+                    await fetchDashboard()
                 }
                 .task {
                     await chatViewModel.loadHistory()
@@ -165,7 +184,7 @@ struct HomeView: View {
             if isUser { Spacer(minLength: 60) }
 
             if isUser {
-                Text(message.content)
+                Text(markdownContent(message.content))
                     .font(.body)
                     .foregroundColor(.white)
                     .padding(12)
@@ -173,7 +192,7 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: .trailing)
             } else {
-                Text(message.content)
+                Text(markdownContent(message.content))
                     .font(.body)
                     .foregroundColor(.white)
                     .padding(12)
@@ -241,10 +260,11 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 Button {
+                    hapticSend()
                     let text = inputText
                     inputText = ""
                     Task {
-                        await chatViewModel.send(text: text)
+                        await chatViewModel.sendStreaming(text: text)
                     }
                 } label: {
                     Image(systemName: "paperplane.fill")
@@ -265,6 +285,15 @@ struct HomeView: View {
 
     private var isSendDisabled: Bool {
         inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || chatViewModel.isLoading
+    }
+
+    private func markdownContent(_ text: String) -> AttributedString {
+        (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
+    }
+
+    private func hapticSend() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
     }
 
     private func scrollToBottom(proxy: ScrollViewProxy) {
@@ -362,14 +391,32 @@ struct HomeView: View {
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.55))
                 Spacer()
-                Text("Next: \(db.nextRaceName)")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(white: 0.55))
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Next: \(db.nextRaceName)")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(white: 0.55))
+                    if let nextDate = parseDateFlexible(db.nextRaceDate) {
+                        Text(nextDate, style: .timer)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(redAccent)
+                    }
+                }
             }
         }
         .padding(14)
         .background(Color(red: 0.11, green: 0.11, blue: 0.11))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func parseDateFlexible(_ dateStr: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        if let d = iso.date(from: dateStr) { return d }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        return f.date(from: dateStr)
     }
 
     // MARK: - Search Overlay

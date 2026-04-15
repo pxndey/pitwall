@@ -63,3 +63,42 @@ class BaseAgent(ABC):
 
         except Exception as e:
             return f"Pitwall AI error: {e}"
+
+    def _call_llm_stream(self, system_prompt: str, messages: list[dict]):
+        """Yield response tokens from watsonx LLM."""
+        try:
+            from ibm_watsonx_ai import Credentials
+            from ibm_watsonx_ai.foundation_models import ModelInference
+
+            from core.config import settings
+
+            if not settings.watsonx_api_key or not settings.watsonx_project_id:
+                yield "Pitwall AI is not configured."
+                return
+
+            credentials = Credentials(
+                url=settings.watsonx_url,
+                api_key=settings.watsonx_api_key,
+            )
+            model = ModelInference(
+                model_id="meta-llama/llama-3-3-70b-instruct",
+                credentials=credentials,
+                project_id=settings.watsonx_project_id,
+            )
+
+            full_messages = [{"role": "system", "content": system_prompt}] + messages
+            for chunk in model.chat_stream(messages=full_messages):
+                delta = (
+                    chunk.get("choices", [{}])[0]
+                    .get("delta", {})
+                    .get("content", "")
+                )
+                if delta:
+                    yield delta
+
+        except Exception as e:
+            yield f"Pitwall AI error: {e}"
+
+    def handle_stream(self, message: str, history: list, user_context: dict):
+        """Stream response tokens. Default: yield full response."""
+        yield self.handle(message, history, user_context)

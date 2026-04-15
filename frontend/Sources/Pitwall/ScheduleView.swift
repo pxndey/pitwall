@@ -209,6 +209,7 @@ private func isNext(in races: [F1Race], race: F1Race) -> Bool {
 private struct RaceDetailView: View {
     let race: F1Race
     @State private var showChatSheet = false
+    @State private var showLapChart = false
     @State private var notificationScheduled = false
     @State private var raceResults: [[String: Any]] = []
     @State private var isLoadingResults = false
@@ -332,6 +333,27 @@ private struct RaceDetailView: View {
                             }
                         }
                         .padding(.horizontal, 16)
+
+                        // Lap Chart button
+                        Button {
+                            showLapChart = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "chart.xyaxis.line")
+                                Text("View Lap Chart")
+                            }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color(red: 0.11, green: 0.11, blue: 0.11))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(red.opacity(0.5), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 16)
                     }
 
                     if isLoadingResults {
@@ -395,6 +417,11 @@ private struct RaceDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showChatSheet) {
             RaceContextChatView(race: race)
+        }
+        .sheet(isPresented: $showLapChart) {
+            NavigationStack {
+                LapChartView(season: race.season, round: race.round)
+            }
         }
         .task {
             if isPast(race.date) {
@@ -562,7 +589,7 @@ private struct RaceContextChatView: View {
         HStack {
             if message.role == "user" {
                 Spacer()
-                Text(message.content)
+                Text(raceContextMarkdown(message.content))
                     .font(.system(size: 14))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
@@ -570,7 +597,7 @@ private struct RaceContextChatView: View {
                     .background(red.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
-                Text(message.content)
+                Text(raceContextMarkdown(message.content))
                     .font(.system(size: 14))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
@@ -596,6 +623,10 @@ private struct RaceContextChatView: View {
            let root = scene.windows.first?.rootViewController {
             root.present(av, animated: true)
         }
+    }
+
+    private func raceContextMarkdown(_ text: String) -> AttributedString {
+        (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
     }
 }
 

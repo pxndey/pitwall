@@ -1,5 +1,76 @@
 import Foundation
 
+// ---------------------------------------------------------------------------
+// MARK: - WebSocketManager
+// ---------------------------------------------------------------------------
+
+final class WebSocketManager: NSObject, ObservableObject, URLSessionWebSocketDelegate {
+    private var webSocket: URLSessionWebSocketTask?
+    var onToken: ((String) -> Void)?
+    var onDone: ((String) -> Void)?
+    var onError: ((String) -> Void)?
+
+    func connect() {
+        guard let url = URL(string: "ws://localhost:8000/api/chat/ws") else { return }
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        webSocket = session.webSocketTask(with: url)
+        webSocket?.resume()
+        receiveMessage()
+    }
+
+    func disconnect() {
+        webSocket?.cancel(with: .goingAway, reason: nil)
+        webSocket = nil
+    }
+
+    func send(message: String, history: [[String: String]], token: String,
+              circuitContext: String = "", conversationId: String = "") {
+        let payload: [String: Any] = [
+            "message": message,
+            "history": history,
+            "token": token,
+            "circuit_context": circuitContext,
+            "conversation_id": conversationId,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: data, encoding: .utf8) else { return }
+        webSocket?.send(.string(text)) { _ in }
+    }
+
+    nonisolated private func receiveMessage() {
+        webSocket?.receive { [weak self] result in
+            switch result {
+            case .success(.string(let text)):
+                if let data = text.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let type = json["type"] as? String ?? ""
+                    let content = json["content"] as? String ?? ""
+                    Task { @MainActor in
+                        if type == "token" {
+                            self?.onToken?(content)
+                        } else if type == "done" {
+                            self?.onDone?(content)
+                        } else if let error = json["error"] as? String {
+                            self?.onError?(error)
+                        }
+                    }
+                }
+                self?.receiveMessage()
+            case .failure:
+                Task { @MainActor in
+                    self?.onError?("WebSocket connection lost")
+                }
+            default:
+                self?.receiveMessage()
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MARK: - ChatViewModel
+// ---------------------------------------------------------------------------
+
 @MainActor
 class ChatViewModel: ObservableObject {
 
@@ -17,12 +88,15 @@ class ChatViewModel: ObservableObject {
     @Published var conversations: [ConversationItem] = []
     @Published var activeConversationId: UUID?
     @Published var searchResults: [Message] = []
+    @Published var streamingText: String = ""
 
     private let baseURL = "http://localhost:8000/api"
     private let pageSize = 30
     private var historyOffset = 0
+    private let wsManager = WebSocketManager()
+    private var wsConnected = false
 
-    // MARK: - Send
+    // MARK: - Send (Streaming via WebSocket)
 
     func send(text: String, circuitContext: String? = nil) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -88,6 +162,57 @@ class ChatViewModel: ObservableObject {
 
         // 6. Clear loading
         isLoading = false
+    }
+
+    // MARK: - Send (Streaming via WebSocket)
+
+    func sendStreaming(text: String, circuitContext: String? = nil) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        messages.append(Message(role: "user", content: trimmed))
+        isLoading = true
+        streamingText = ""
+        errorMessage = nil
+
+        if !wsConnected {
+            wsManager.connect()
+            wsConnected = true
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+
+        let token = UserDefaults.standard.string(forKey: "access_token") ?? ""
+        let historySlice = messages.dropLast().suffix(10)
+            .map { ["role": $0.role, "content": $0.content] }
+
+        wsManager.onToken = { [weak self] tok in
+            self?.streamingText += tok
+        }
+
+        wsManager.onDone = { [weak self] fullReply in
+            self?.messages.append(Message(role: "assistant", content: fullReply))
+            self?.streamingText = ""
+            self?.isLoading = false
+            if self?.activeConversationId == nil {
+                Task { await self?.loadConversations() }
+            }
+        }
+
+        wsManager.onError = { [weak self] error in
+            // Fall back to HTTP
+            self?.streamingText = ""
+            self?.isLoading = false
+            self?.messages.removeLast() // Remove user message, send() will re-add
+            Task { await self?.send(text: trimmed, circuitContext: circuitContext) }
+        }
+
+        wsManager.send(
+            message: trimmed,
+            history: historySlice,
+            token: token,
+            circuitContext: circuitContext ?? "",
+            conversationId: activeConversationId?.uuidString ?? ""
+        )
     }
 
     // MARK: - Load History (initial)

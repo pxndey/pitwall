@@ -109,6 +109,23 @@ class F1DataService:
 
         return self._cached(f"qualifying_{season}_{round_num}", _TTL_RESULTS, _fetch)
 
+    def get_lap_times(self, season: int, round_num: int) -> list[dict]:
+        """Lap-by-lap timing data for a race."""
+
+        def _fetch():
+            try:
+                laps = self._ergast.get_lap_times(season=season, round=round_num)
+                df = laps.content[0]
+                return df.to_dict(orient="records")
+            except Exception as exc:
+                logger.error(
+                    "Failed to fetch lap times (s=%s r=%s): %s",
+                    season, round_num, exc,
+                )
+                return []
+
+        return self._cached(f"laps_{season}_{round_num}", _TTL_RESULTS, _fetch)
+
     def get_race_schedule(self, season: int = 2025) -> list[dict]:
         """Full season calendar."""
 

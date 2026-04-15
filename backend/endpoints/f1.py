@@ -224,3 +224,43 @@ def get_driver_dashboard(
 def get_next_race() -> dict:
     data_service = _get_data_service()
     return data_service.get_next_race()
+
+
+@router.get("/laps/{season}/{round_num}")
+def get_lap_times(
+    season: int,
+    round_num: int,
+    current_user: User = Depends(get_current_user),
+):
+    data_service = _get_data_service()
+    return data_service.get_lap_times(season, round_num)
+
+
+@router.get("/driver/{driver_id}/season/{season}")
+def get_driver_detail(
+    driver_id: str,
+    season: int = 2025,
+    current_user: User = Depends(get_current_user),
+):
+    data_service = _get_data_service()
+    season_results = data_service.get_driver_season_results(driver_id, season)
+    standings = data_service.get_driver_standings(season)
+    driver_standing = next(
+        (
+            s
+            for s in standings
+            if driver_id.lower() in s.get("familyName", "").lower()
+            or driver_id.lower() == s.get("driverId", "").lower()
+        ),
+        None,
+    )
+    drivers = data_service.get_drivers(season)
+    driver_info = next(
+        (d for d in drivers if d.get("driverId", "").lower() == driver_id.lower()),
+        None,
+    )
+    return {
+        "driver_info": driver_info,
+        "standing": driver_standing,
+        "season_results": season_results,
+    }

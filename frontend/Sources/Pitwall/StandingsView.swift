@@ -251,8 +251,13 @@ struct StandingsView: View {
     // MARK: - Driver List
 
     private var driverList: some View {
-        List {
-            ForEach(viewModel.driverStandings) { driver in
+        List(viewModel.driverStandings) { driver in
+            NavigationLink {
+                DriverDetailView(
+                    driverId: driver.familyName.lowercased(),
+                    driverName: "\(driver.givenName) \(driver.familyName)"
+                )
+            } label: {
                 driverRow(driver)
             }
         }

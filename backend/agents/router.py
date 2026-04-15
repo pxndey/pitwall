@@ -58,3 +58,12 @@ class AgentRouter:
                 return agent.handle(message, history, user_context)
 
         return self._fallback.handle(message, history, user_context)
+
+    def route_stream(self, message: str, history: list, user_context: dict):
+        """Route and stream response tokens."""
+        intent = self.classify_intent(message)
+        for agent in self.agents:
+            if agent.can_handle(message, intent):
+                yield from agent.handle_stream(message, history, user_context)
+                return
+        yield from self._fallback.handle_stream(message, history, user_context)

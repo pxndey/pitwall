@@ -1,7 +1,9 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
@@ -274,3 +276,93 @@ def chat_watsonx(
     db.commit()
 
     return {"reply": reply, "conversation_id": str(conv_id)}
+
+
+# ---------------------------------------------------------------------------
+# WebSocket /chat/ws — stream tokens from the multi-agent framework
+# ---------------------------------------------------------------------------
+
+@router.websocket("/ws")
+async def chat_websocket(websocket: WebSocket, db: Session = Depends(get_db)):
+    await websocket.accept()
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            data = json.loads(raw)
+
+            # Authenticate from the token in the message
+            ws_token = data.get("token", "")
+            try:
+                from jose import jwt as jose_jwt
+                from core.config import settings
+
+                payload = jose_jwt.decode(
+                    ws_token, settings.secret_key, algorithms=["HS256"]
+                )
+                username = payload.get("sub")
+                user = db.query(User).filter(User.username == username).first()
+                if not user:
+                    await websocket.send_json({"error": "Invalid token"})
+                    continue
+            except Exception:
+                await websocket.send_json({"error": "Authentication failed"})
+                continue
+
+            message_text = data.get("message", "")
+            history = data.get("history", [])
+            circuit_context = data.get("circuit_context", "")
+            conversation_id_str = data.get("conversation_id", "")
+
+            global _router
+            if _router is None:
+                from agents.router import AgentRouter
+
+                _router = AgentRouter()
+
+            user_context = {
+                "username": user.username,
+                "fav_driver": user.fav_driver or "",
+                "fav_team": user.fav_team or "",
+                "circuit_context": circuit_context,
+                "language": getattr(user, "language", "en") or "en",
+            }
+
+            full_reply = ""
+            for tok in _router.route_stream(message_text, history, user_context):
+                full_reply += tok
+                await websocket.send_json({"type": "token", "content": tok})
+            await websocket.send_json({"type": "done", "content": full_reply})
+
+            # Persist messages
+            conv_id = None
+            if conversation_id_str:
+                try:
+                    conv_id = uuid.UUID(conversation_id_str)
+                except ValueError:
+                    pass
+            else:
+                conv = Conversation(title=message_text[:50], user_id=user.id)
+                db.add(conv)
+                db.commit()
+                db.refresh(conv)
+                conv_id = conv.id
+
+            db.add(
+                ChatHistory(
+                    chat=message_text,
+                    role="user",
+                    user_id=user.id,
+                    conversation_id=conv_id,
+                )
+            )
+            db.add(
+                ChatHistory(
+                    chat=full_reply,
+                    role="assistant",
+                    user_id=user.id,
+                    conversation_id=conv_id,
+                )
+            )
+            db.commit()
+    except WebSocketDisconnect:
+        pass
