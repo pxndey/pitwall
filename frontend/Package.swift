@@ -7,7 +7,6 @@ let package = Package(
     name: "Pitwall",
     platforms: [
         .iOS(.v17),
-        .macOS(.v14),
     ],
     products: [
         .executable(name: "Pitwall", targets: ["Pitwall"]),
@@ -17,7 +16,8 @@ let package = Package(
         .executableTarget(
             name: "Pitwall",
             dependencies: [],
-            path: "Sources/Pitwall"
+            path: "Sources/Pitwall",
+            exclude: ["Info.plist"]
         ),
         .testTarget(
             name: "PitwallTests",

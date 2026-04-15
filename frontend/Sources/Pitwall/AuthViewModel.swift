@@ -7,7 +7,10 @@ struct Token: Decodable {
 
 @MainActor
 class AuthViewModel: ObservableObject {
-    @Published var isLoggedIn = false
+    /// Set to `true` to skip login and go straight to the app.
+    static let debugSkipAuth = true
+
+    @Published var isLoggedIn = true // debugSkipAuth
     @Published var errorMessage: String? = nil
     @Published var isLoading = false
 

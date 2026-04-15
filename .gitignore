@@ -65,6 +65,10 @@ fastlane/test_output/
 timeline.xctimeline
 playground.xcworkspace
 
+# ─── Reports / Summaries ──────────────────────────────────────────────────────
+SUMMARY_*.md
+CHANGES_*.md
+
 # macOS
 .DS_Store
 .AppleDouble
