@@ -11,7 +11,7 @@ struct HomeView: View {
 
     // MARK: - Colors
 
-    private let bgTop     = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bgTop     = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let bgBottom  = Color(red: 0.15, green: 0.0,  blue: 0.0)
     private let redAccent = Color(red: 0.88, green: 0.1,  blue: 0.1)
     private let bubbleDark = Color(red: 0.12, green: 0.12, blue: 0.12)
@@ -50,6 +50,7 @@ struct HomeView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(redAccent)
                 }
+                .accessibilityLabel("Conversations")
                 .padding(.leading, 20)
                 Spacer()
                 Button { showSearch.toggle() } label: {
@@ -57,6 +58,7 @@ struct HomeView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(redAccent)
                 }
+                .accessibilityLabel("Search messages")
                 .padding(.trailing, 20)
             }
 
@@ -100,7 +102,7 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
                                 .background(Color(red: 0.12, green: 0.05, blue: 0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             .disabled(chatViewModel.isLoadingHistory)
                             .id("loadMore")
@@ -125,7 +127,7 @@ struct HomeView: View {
                             // Streaming text bubble
                             if !chatViewModel.streamingText.isEmpty {
                                 HStack {
-                                    Text(markdownContent(chatViewModel.streamingText))
+                                    Text(markdownContent(chatViewModel.streamingText + " ▍"))
                                         .font(.body)
                                         .foregroundColor(.white)
                                         .padding(12)
@@ -272,6 +274,7 @@ struct HomeView: View {
                         .foregroundColor(isSendDisabled ? .gray : redAccent)
                         .padding(10)
                 }
+                .accessibilityLabel("Send message")
                 .disabled(isSendDisabled)
             }
             .padding(.horizontal, 16)
@@ -380,7 +383,7 @@ struct HomeView: View {
                         .foregroundColor(.white)
                     Text("\(String(format: "%.0f", db.championshipPoints)) pts")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(white: 0.55))
+                        .foregroundColor(Color(white: 0.65))
                 }
 
                 Spacer()
@@ -389,12 +392,12 @@ struct HomeView: View {
             HStack {
                 Text("Last: P\(db.lastRacePosition) at \(db.lastRaceName)")
                     .font(.system(size: 12))
-                    .foregroundColor(Color(white: 0.55))
+                    .foregroundColor(Color(white: 0.65))
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Next: \(db.nextRaceName)")
                         .font(.system(size: 12))
-                        .foregroundColor(Color(white: 0.55))
+                        .foregroundColor(Color(white: 0.65))
                     if let nextDate = parseDateFlexible(db.nextRaceDate) {
                         Text(nextDate, style: .timer)
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
@@ -406,6 +409,10 @@ struct HomeView: View {
         .padding(14)
         .background(Color(red: 0.11, green: 0.11, blue: 0.11))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
     }
 
     private func parseDateFlexible(_ dateStr: String) -> Date? {
@@ -425,7 +432,7 @@ struct HomeView: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(Color(white: 0.55))
+                    .foregroundColor(Color(white: 0.65))
                 TextField("Search messages...", text: $searchQuery)
                     .font(.system(size: 14))
                     .foregroundColor(.white)
@@ -446,8 +453,9 @@ struct HomeView: View {
                     chatViewModel.searchResults = []
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(Color(white: 0.55))
+                        .foregroundColor(Color(white: 0.65))
                 }
+                .accessibilityLabel("Close")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -469,7 +477,11 @@ struct HomeView: View {
                             .padding(10)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                            )
                             .onTapGesture {
                                 showSearch = false
                                 searchQuery = ""

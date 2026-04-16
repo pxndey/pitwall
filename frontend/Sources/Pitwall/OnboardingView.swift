@@ -5,7 +5,7 @@ struct OnboardingView: View {
     @Environment(\.dismiss) var dismiss
     @State private var currentPage = 0
 
-    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg  = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {
@@ -48,7 +48,7 @@ struct OnboardingView: View {
 
                     Text("Set your favourite driver and team for personalized insights")
                         .font(.system(size: 16))
-                        .foregroundColor(Color(white: 0.55))
+                        .foregroundColor(Color(white: 0.65))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
 
@@ -65,6 +65,7 @@ struct OnboardingView: View {
                             .padding(.vertical, 16)
                             .background(red)
                             .clipShape(Capsule())
+                            .shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 60)
@@ -90,7 +91,7 @@ struct OnboardingView: View {
 
             Text(description)
                 .font(.system(size: 16))
-                .foregroundColor(Color(white: 0.55))
+                .foregroundColor(Color(white: 0.65))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 

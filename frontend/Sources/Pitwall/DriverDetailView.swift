@@ -39,7 +39,7 @@ struct DriverDetailView: View {
 
     @StateObject private var viewModel = DriverDetailViewModel()
 
-    private let bg   = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg   = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red  = Color(red: 0.88, green: 0.1, blue: 0.1)
     private let card = Color(red: 0.11, green: 0.11, blue: 0.11)
 
@@ -95,7 +95,7 @@ struct DriverDetailView: View {
                     Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 40)).foregroundStyle(red)
                     Text(err).font(.system(size: 14)).foregroundStyle(Color(white: 0.6)).multilineTextAlignment(.center).padding(.horizontal, 32)
                     Button { Task { await viewModel.load(driverId: driverId) } } label: {
-                        Text("Retry").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 28).padding(.vertical, 10).background(red).clipShape(Capsule())
+                        Text("Retry").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 28).padding(.vertical, 10).background(red).clipShape(Capsule()).shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
                     }
                 }
             } else {
@@ -155,7 +155,7 @@ struct DriverDetailView: View {
                     if let nationality = info["nationality"] as? String {
                         Text(nationality)
                             .font(.system(size: 14))
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(Color(white: 0.65))
                     }
                 }
 
@@ -164,13 +164,13 @@ struct DriverDetailView: View {
                     let wins = "\(standing["wins"] ?? "0")"
                     HStack(spacing: 12) {
                         Text("\(pts) pts").font(.system(size: 14, weight: .semibold)).foregroundStyle(red)
-                        Text("\(wins) wins").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color(white: 0.55))
+                        Text("\(wins) wins").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color(white: 0.65))
                     }
                 }
 
                 if let standing = viewModel.standing {
                     if let team = standing["constructorName"] as? String {
-                        Text(team).font(.system(size: 13)).foregroundStyle(Color(white: 0.45))
+                        Text(team).font(.system(size: 13)).foregroundStyle(Color(white: 0.58))
                     }
                 }
             }
@@ -179,6 +179,10 @@ struct DriverDetailView: View {
         .padding(16)
         .background(card)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
         .padding(.horizontal, 16)
     }
 
@@ -200,13 +204,17 @@ struct DriverDetailView: View {
                 .foregroundStyle(.white)
             Text(label)
                 .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(Color(white: 0.45))
+                .foregroundStyle(Color(white: 0.58))
                 .tracking(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(card)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
         .padding(.horizontal, 2)
     }
 
@@ -267,7 +275,11 @@ struct DriverDetailView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(card)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                )
                 .padding(.horizontal, 16)
             }
         }

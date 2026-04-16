@@ -58,7 +58,7 @@ struct LapChartView: View {
     @StateObject private var viewModel = LapChartViewModel()
     @State private var hiddenDrivers: Set<String> = []
 
-    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg  = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
     private let card = Color(red: 0.11, green: 0.11, blue: 0.11)
 
@@ -96,7 +96,7 @@ struct LapChartView: View {
         if let idx = drivers.firstIndex(of: driverId), idx < palette.count {
             return palette[idx]
         }
-        return Color(white: 0.4)
+        return Color(white: 0.55)
     }
 
     var body: some View {
@@ -113,12 +113,12 @@ struct LapChartView: View {
                     Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 40)).foregroundStyle(red)
                     Text(err).font(.system(size: 14)).foregroundStyle(Color(white: 0.6)).multilineTextAlignment(.center).padding(.horizontal, 32)
                     Button { Task { await viewModel.loadLaps(season: season, round: round) } } label: {
-                        Text("Retry").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 28).padding(.vertical, 10).background(red).clipShape(Capsule())
+                        Text("Retry").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).padding(.horizontal, 28).padding(.vertical, 10).background(red).clipShape(Capsule()).shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
                     }
                 }
             } else if viewModel.lapData.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "chart.xyaxis.line").font(.system(size: 40)).foregroundStyle(Color(white: 0.4))
+                    Image(systemName: "chart.xyaxis.line").font(.system(size: 40)).foregroundStyle(Color(white: 0.55))
                     Text("No lap data available").font(.system(size: 16)).foregroundStyle(Color(white: 0.5))
                 }
             } else {
@@ -159,7 +159,7 @@ struct LapChartView: View {
                                 } label: {
                                     Text(driver)
                                         .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(hiddenDrivers.contains(driver) ? Color(white: 0.4) : .white)
+                                        .foregroundColor(hiddenDrivers.contains(driver) ? Color(white: 0.55) : .white)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
                                         .background(hiddenDrivers.contains(driver) ? Color(white: 0.15) : colorFor(driver).opacity(0.3))

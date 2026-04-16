@@ -5,7 +5,7 @@ struct SplashView: View {
     @State private var opacity: Double = 0
     @State private var showLogin = false
 
-    private let bgColor = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bgColor = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let redAccent = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {

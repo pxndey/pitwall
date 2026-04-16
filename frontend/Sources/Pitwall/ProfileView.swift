@@ -164,7 +164,7 @@ struct UpdateDetailsView: View {
     @State private var favTeam: String
 
     private let accent = Color(red: 0.88, green: 0.1, blue: 0.1)
-    private let bg = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let rowBg = Color(red: 0.1, green: 0.1, blue: 0.1)
 
     init(profileViewModel: ProfileViewModel) {
@@ -293,7 +293,7 @@ private struct EditPreferenceSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let accent = Color(red: 0.88, green: 0.1, blue: 0.1)
-    private let bg = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let rowBg = Color(red: 0.1, green: 0.1, blue: 0.1)
 
     var body: some View {
@@ -342,7 +342,7 @@ struct ProfileView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var profileViewModel = ProfileViewModel()
 
-    private let bg = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let rowBg = Color(red: 0.1, green: 0.1, blue: 0.1)
     private let accent = Color(red: 0.88, green: 0.1, blue: 0.1)
 
@@ -563,7 +563,7 @@ private struct LanguagePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let accent = Color(red: 0.88, green: 0.1, blue: 0.1)
-    private let bg = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let rowBg = Color(red: 0.1, green: 0.1, blue: 0.1)
 
     private let options: [(code: String, label: String)] = [

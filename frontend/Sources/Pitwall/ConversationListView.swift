@@ -23,7 +23,7 @@ struct ConversationListView: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @Environment(\.dismiss) var dismiss
 
-    private let bg   = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg   = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let card = Color(red: 0.11, green: 0.11, blue: 0.11)
     private let red  = Color(red: 0.88, green: 0.1, blue: 0.1)
 
@@ -50,8 +50,9 @@ struct ConversationListView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color(white: 0.55))
+                            .foregroundColor(Color(white: 0.65))
                     }
+                    .accessibilityLabel("Close")
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
@@ -73,7 +74,8 @@ struct ConversationListView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(red)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
@@ -83,7 +85,7 @@ struct ConversationListView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 40))
-                            .foregroundStyle(Color(white: 0.4))
+                            .foregroundStyle(Color(white: 0.55))
                         Text("No conversations yet")
                             .font(.system(size: 16))
                             .foregroundStyle(Color(white: 0.5))
@@ -136,7 +138,7 @@ struct ConversationListView: View {
                     .lineLimit(1)
                 Text(dateFormatter.string(from: conversation.createdAt))
                     .font(.system(size: 12))
-                    .foregroundColor(Color(white: 0.55))
+                    .foregroundColor(Color(white: 0.65))
             }
 
             Spacer(minLength: 8)
@@ -144,7 +146,7 @@ struct ConversationListView: View {
             // Message count badge
             Text("\(conversation.messageCount)")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(Color(white: 0.55))
+                .foregroundColor(Color(white: 0.65))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color(white: 0.2))

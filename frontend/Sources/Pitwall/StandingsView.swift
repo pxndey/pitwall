@@ -133,7 +133,7 @@ struct StandingsView: View {
     @StateObject private var viewModel = StandingsViewModel()
     @State private var selectedTab = 0
 
-    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg  = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {
@@ -231,6 +231,7 @@ struct StandingsView: View {
                     .padding(.vertical, 10)
                     .background(red)
                     .clipShape(Capsule())
+                    .shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
             }
         }
         .frame(maxHeight: .infinity)
@@ -240,7 +241,7 @@ struct StandingsView: View {
         VStack(spacing: 12) {
             Image(systemName: "trophy")
                 .font(.system(size: 40))
-                .foregroundStyle(Color(white: 0.4))
+                .foregroundStyle(Color(white: 0.55))
             Text("No standings available")
                 .font(.system(size: 16))
                 .foregroundStyle(Color(white: 0.5))
@@ -260,6 +261,7 @@ struct StandingsView: View {
             } label: {
                 driverRow(driver)
             }
+            .buttonStyle(.plain)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -277,7 +279,7 @@ struct StandingsView: View {
                     .lineLimit(1)
                 Text(driver.constructorName)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color(white: 0.65))
                     .lineLimit(1)
             }
 
@@ -289,7 +291,7 @@ struct StandingsView: View {
                     .foregroundStyle(.white)
                 Text("\(driver.wins.displayString) wins")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color(white: 0.65))
             }
         }
         .padding(.horizontal, 14)
@@ -297,6 +299,10 @@ struct StandingsView: View {
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(red: 0.11, green: 0.11, blue: 0.11))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
         )
         .listRowBackground(bg)
         .listRowSeparator(.hidden)
@@ -333,7 +339,7 @@ struct StandingsView: View {
                     .foregroundStyle(.white)
                 Text("\(constructor.wins.displayString) wins")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color(white: 0.65))
             }
         }
         .padding(.horizontal, 14)
@@ -341,6 +347,10 @@ struct StandingsView: View {
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(red: 0.11, green: 0.11, blue: 0.11))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
         )
         .listRowBackground(bg)
         .listRowSeparator(.hidden)

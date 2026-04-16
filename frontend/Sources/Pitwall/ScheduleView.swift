@@ -214,7 +214,7 @@ private struct RaceDetailView: View {
     @State private var raceResults: [[String: Any]] = []
     @State private var isLoadingResults = false
 
-    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg  = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {
@@ -234,7 +234,7 @@ private struct RaceDetailView: View {
                                     .foregroundStyle(.white)
                                 Text("Round \(race.round)")
                                     .font(.system(size: 14))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    .foregroundStyle(Color(white: 0.65))
                             }
                             Spacer()
                         }
@@ -311,7 +311,7 @@ private struct RaceDetailView: View {
                                             .lineLimit(1)
                                         Text(constructor)
                                             .font(.system(size: 12))
-                                            .foregroundStyle(Color(white: 0.55))
+                                            .foregroundStyle(Color(white: 0.65))
                                     }
 
                                     Spacer()
@@ -319,7 +319,7 @@ private struct RaceDetailView: View {
                                     VStack(alignment: .trailing, spacing: 2) {
                                         Text(time.isEmpty ? status : time)
                                             .font(.system(size: 12))
-                                            .foregroundStyle(Color(white: 0.55))
+                                            .foregroundStyle(Color(white: 0.65))
                                             .lineLimit(1)
                                         Text("\(points) pts")
                                             .font(.system(size: 12, weight: .medium))
@@ -329,7 +329,11 @@ private struct RaceDetailView: View {
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 12)
                                 .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                                )
                             }
                         }
                         .padding(.horizontal, 16)
@@ -347,9 +351,9 @@ private struct RaceDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(red.opacity(0.5), lineWidth: 1)
                             )
                         }
@@ -377,7 +381,8 @@ private struct RaceDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(red)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
                         }
 
                         Button {
@@ -395,9 +400,9 @@ private struct RaceDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(notificationScheduled ? Color(white: 0.2) : red.opacity(0.5), lineWidth: 1)
                             )
                         }
@@ -466,7 +471,7 @@ private struct InfoRow: View {
         HStack {
             Text(label)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color(white: 0.55))
+                .foregroundStyle(Color(white: 0.65))
             Spacer()
             Text(value)
                 .font(.system(size: 14, weight: .semibold))
@@ -476,7 +481,11 @@ private struct InfoRow: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
         .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
     }
 }
 
@@ -490,7 +499,7 @@ private struct RaceContextChatView: View {
     @StateObject private var chatViewModel = ChatViewModel()
     @State private var inputText: String = ""
 
-    private let bgTop    = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bgTop    = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let bgBottom = Color(red: 0.15, green: 0.0, blue: 0.0)
     private let red      = Color(red: 0.88, green: 0.1, blue: 0.1)
 
@@ -504,6 +513,7 @@ private struct RaceContextChatView: View {
                     Button("Close") { dismiss() }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(red)
+                        .accessibilityLabel("Close")
                     Spacer()
                     Text("\(race.raceName) - \(race.circuit.circuitName)")
                         .font(.system(size: 12, weight: .semibold))
@@ -571,6 +581,7 @@ private struct RaceContextChatView: View {
                             .font(.system(size: 20))
                             .foregroundColor(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color(white: 0.3) : red)
                     }
+                    .accessibilityLabel("Send message")
                     .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(.horizontal, 16)
@@ -595,7 +606,7 @@ private struct RaceContextChatView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(red.opacity(0.8))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             } else {
                 Text(raceContextMarkdown(message.content))
                     .font(.system(size: 14))
@@ -603,7 +614,7 @@ private struct RaceContextChatView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                     .contextMenu {
                         Button {
                             shareText(message.content)
@@ -640,7 +651,7 @@ private struct RaceCardView: View {
     let isNextRace: Bool
     let isPastRace: Bool
 
-    private let bg         = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg         = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let cardBg     = Color(red: 0.11, green: 0.11, blue: 0.11)
     private let cardBgNext = Color(red: 0.14, green: 0.10, blue: 0.10)
     private let red        = Color(red: 0.88, green: 0.1, blue: 0.1)
@@ -673,7 +684,7 @@ private struct RaceCardView: View {
                     }
                     Text(race.circuit.circuitName)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color(white: 0.55))
+                        .foregroundStyle(Color(white: 0.65))
                         .lineLimit(1)
                 }
 
@@ -683,7 +694,7 @@ private struct RaceCardView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(weekendRange(from: race.date))
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(isPastRace ? Color(white: 0.4) : red)
+                        .foregroundStyle(isPastRace ? Color(white: 0.55) : red)
 
                     if isNextRace {
                         Text("NEXT RACE")
@@ -714,6 +725,7 @@ private struct RaceCardView: View {
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -727,7 +739,7 @@ struct ScheduleView: View {
     @StateObject private var viewModel = ScheduleViewModel()
     @State private var allNotificationsScheduled = false
 
-    private let bg  = Color(red: 0.05, green: 0.05, blue: 0.05)
+    private let bg  = Color(red: 0.02, green: 0.02, blue: 0.024)
     private let red = Color(red: 0.88, green: 0.1, blue: 0.1)
 
     var body: some View {
@@ -761,8 +773,9 @@ struct ScheduleView: View {
                         }
                     } label: {
                         Image(systemName: allNotificationsScheduled ? "bell.fill" : "bell")
-                            .foregroundColor(allNotificationsScheduled ? Color(white: 0.4) : red)
+                            .foregroundColor(allNotificationsScheduled ? Color(white: 0.55) : red)
                     }
+                    .accessibilityLabel("Schedule notifications")
                     .disabled(allNotificationsScheduled || viewModel.races.isEmpty)
                 }
             }
@@ -805,6 +818,7 @@ struct ScheduleView: View {
                     .padding(.vertical, 10)
                     .background(red)
                     .clipShape(Capsule())
+                    .shadow(color: Color(red: 0.88, green: 0.1, blue: 0.1).opacity(0.4), radius: 8, x: 0, y: 2)
             }
         }
     }
@@ -813,7 +827,7 @@ struct ScheduleView: View {
         VStack(spacing: 12) {
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 40))
-                .foregroundStyle(Color(white: 0.4))
+                .foregroundStyle(Color(white: 0.55))
             Text("No races found")
                 .font(.system(size: 16))
                 .foregroundStyle(Color(white: 0.5))
