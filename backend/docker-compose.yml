@@ -1,10 +1,10 @@
 services:
-  pitcrew-api:
+  pitcrew-backend:
     build:
       context: .
       dockerfile: Dockerfile
-    image: pitcrew-api:latest
-    container_name: pitcrew-api
+    image: pitcrew-backend:latest
+    container_name: pitcrew-backend
     restart: unless-stopped
     env_file:
       - .env
@@ -27,9 +27,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.pitcrew-api.rule=Host(`pitcrew-api.pxndey.com`)"
-      - "traefik.http.routers.pitcrew-api.entrypoints=web"
-      - "traefik.http.services.pitcrew-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.pitcrew-backend.rule=Host(`pitcrew-backend.pxndey.com`)"
+      - "traefik.http.routers.pitcrew-backend.entrypoints=web"
+      - "traefik.http.services.pitcrew-backend.loadbalancer.server.port=8000"
 
 networks:
   proxy:

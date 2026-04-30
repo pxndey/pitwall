@@ -19,8 +19,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8000/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://pitcrew-backend.pxndey.com/\"")
+        buildConfigField("String", "WS_BASE_URL", "\"wss://pitcrew-backend.pxndey.com/\"")
     }
 
     buildTypes {
@@ -30,8 +30,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
-            buildConfigField("String", "WS_BASE_URL", "\"ws://10.0.2.2:8000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://pitcrew-backend.pxndey.com/\"")
+            buildConfigField("String", "WS_BASE_URL", "\"wss://pitcrew-backend.pxndey.com/\"")
         }
     }
 

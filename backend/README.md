@@ -12,7 +12,7 @@ FastAPI backend for the PitCrew F1 app. Synced from local repo via
 
 ## Where things live at runtime
 
-- Container name: `pitcrew-api`
+- Container name: `pitcrew-backend`
 - Port: `0.0.0.0:8000` (direct exposure; remove or bind to `127.0.0.1` once Traefik is in front)
 - SQLite DB: docker volume `pitcrew-backend_pitcrew_data`, mounted at `/app/data/app.db` inside container
 - Network: `proxy` (external; created on first deploy; Traefik will share this network later)
@@ -58,7 +58,7 @@ That re-rsyncs, rebuilds the image, and restarts. Idempotent. SQLite volume surv
 ## When Traefik gets added
 
 `docker-compose.yml` already has the Traefik labels for host
-`pitcrew-api.pxndey.com` on the `proxy` network. Once Traefik is up on the
+`pitcrew-backend.pxndey.com` on the `proxy` network. Once Traefik is up on the
 same network and DNS for that hostname resolves to this box, it'll Just Work.
 At that point, optionally remove the `ports:` block in `docker-compose.yml`
 to make the API only reachable via Traefik.

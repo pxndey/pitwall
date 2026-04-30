@@ -11,7 +11,7 @@ enum APIConfig {
            !override.isEmpty {
             return override
         }
-        return "pitcrew-api.pxndey.com"
+        return "pitcrew-backend.pxndey.com"
     }()
 
     /// HTTPS base for REST endpoints. Append `/auth/...`, `/chat/...`, `/f1/...`.
