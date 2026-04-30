@@ -11,7 +11,7 @@ final class WebSocketManager: NSObject, ObservableObject, URLSessionWebSocketDel
     var onError: ((String) -> Void)?
 
     func connect() {
-        guard let url = URL(string: "ws://localhost:8000/api/chat/ws") else { return }
+        guard let url = URL(string: "\(APIConfig.webSocketBaseURL)/chat/ws") else { return }
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
         webSocket = session.webSocketTask(with: url)
         webSocket?.resume()
@@ -90,7 +90,7 @@ class ChatViewModel: ObservableObject {
     @Published var searchResults: [Message] = []
     @Published var streamingText: String = ""
 
-    private let baseURL = "http://localhost:8000/api"
+    private let baseURL = "\(APIConfig.baseURL)"
     private let pageSize = 30
     private var historyOffset = 0
     private let wsManager = WebSocketManager()

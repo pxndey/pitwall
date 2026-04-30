@@ -24,7 +24,7 @@ final class NotificationManager: ObservableObject {
 
     @Published var permissionGranted = false
 
-    private let baseURL = "http://localhost:8000/api"
+    private let baseURL = "\(APIConfig.baseURL)"
 
     // MARK: - Permission
 

@@ -28,7 +28,7 @@ class ProfileViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var successMessage: String? = nil
 
-    private let baseURL = "http://localhost:8000/api/auth"
+    private let baseURL = "\(APIConfig.baseURL)/auth"
 
     private var token: String? {
         UserDefaults.standard.string(forKey: "access_token")

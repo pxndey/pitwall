@@ -14,7 +14,7 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var isLoading = false
 
-    private let baseURL = "http://localhost:8000/api/auth"
+    private let baseURL = "\(APIConfig.baseURL)/auth"
 
     func login(username: String, password: String) async {
         isLoading = true

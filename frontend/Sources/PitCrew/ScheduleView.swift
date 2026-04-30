@@ -439,7 +439,7 @@ private struct RaceDetailView: View {
         isLoadingResults = true
         defer { isLoadingResults = false }
 
-        guard let url = URL(string: "http://localhost:8000/api/f1/race-results/\(race.season)/\(race.round)") else { return }
+        guard let url = URL(string: "\(APIConfig.baseURL)/f1/race-results/\(race.season)/\(race.round)") else { return }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"

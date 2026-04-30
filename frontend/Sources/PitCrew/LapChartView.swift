@@ -16,7 +16,7 @@ final class LapChartViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let baseURL = "http://localhost:8000/api"
+    private let baseURL = "\(APIConfig.baseURL)"
 
     func loadLaps(season: String, round: String) async {
         isLoading = true

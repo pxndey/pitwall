@@ -64,7 +64,7 @@ final class StandingsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let baseURL = "http://localhost:8000/api"
+    private let baseURL = "\(APIConfig.baseURL)"
 
     private var token: String? {
         UserDefaults.standard.string(forKey: "access_token")

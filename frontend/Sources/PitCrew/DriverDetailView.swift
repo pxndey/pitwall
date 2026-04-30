@@ -8,7 +8,7 @@ final class DriverDetailViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let baseURL = "http://localhost:8000/api"
+    private let baseURL = "\(APIConfig.baseURL)"
 
     func load(driverId: String, season: Int = 2025) async {
         isLoading = true

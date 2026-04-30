@@ -336,7 +336,7 @@ struct HomeView: View {
     }
 
     private func fetchDashboard() async {
-        guard let url = URL(string: "http://localhost:8000/api/f1/driver-dashboard") else { return }
+        guard let url = URL(string: "\(APIConfig.baseURL)/f1/driver-dashboard") else { return }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
