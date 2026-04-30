@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pitwall"
+rootProject.name = "PitCrew"
 include(":app")

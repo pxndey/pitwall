@@ -1,4 +1,4 @@
-"""Base agent class for all Pitwall agents."""
+"""Base agent class for all PitCrew agents."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 
 class BaseAgent(ABC):
-    """Base class for all Pitwall agents."""
+    """Base class for all PitCrew agents."""
 
     def __init__(self, data_service) -> None:
         self.data = data_service
@@ -39,7 +39,7 @@ class BaseAgent(ABC):
             from core.config import settings
 
             if not settings.watsonx_api_key or not settings.watsonx_project_id:
-                return "Pitwall AI is not configured."
+                return "PitCrew AI is not configured."
 
             credentials = Credentials(
                 url=settings.watsonx_url,
@@ -62,7 +62,7 @@ class BaseAgent(ABC):
             ) or "No response received."
 
         except Exception as e:
-            return f"Pitwall AI error: {e}"
+            return f"PitCrew AI error: {e}"
 
     def _call_llm_stream(self, system_prompt: str, messages: list[dict]):
         """Yield response tokens from watsonx LLM."""
@@ -73,7 +73,7 @@ class BaseAgent(ABC):
             from core.config import settings
 
             if not settings.watsonx_api_key or not settings.watsonx_project_id:
-                yield "Pitwall AI is not configured."
+                yield "PitCrew AI is not configured."
                 return
 
             credentials = Credentials(
@@ -97,7 +97,7 @@ class BaseAgent(ABC):
                     yield delta
 
         except Exception as e:
-            yield f"Pitwall AI error: {e}"
+            yield f"PitCrew AI error: {e}"
 
     def handle_stream(self, message: str, history: list, user_context: dict):
         """Stream response tokens. Default: yield full response."""

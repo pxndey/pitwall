@@ -1,8 +1,8 @@
 # Retrofit
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.pitwall.app.data.remote.model.** { *; }
--keepclassmembers class com.pitwall.app.data.remote.model.** { *; }
+-keep class com.pitcrew.app.data.remote.model.** { *; }
+-keepclassmembers class com.pitcrew.app.data.remote.model.** { *; }
 
 # Gson
 -keep class com.google.gson.** { *; }

@@ -395,7 +395,7 @@ class H2HAgent(BaseAgent):
         )
 
         system_prompt = (
-            "You are Pitwall's Head-to-Head analyst. You compare F1 drivers "
+            "You are PitCrew's Head-to-Head analyst. You compare F1 drivers "
             "and teams using real data.\n"
             "Present comparisons clearly with key stats highlighted.\n"
             "Be objective but engaging. Use the data provided to support "

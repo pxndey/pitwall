@@ -1,4 +1,4 @@
-# Pitwall
+# PitCrew
 
 > Your F1 co-watcher — an AI-powered chat assistant that explains strategy, results, standings, and terminology, one turn at a time.
 
@@ -36,7 +36,7 @@
 
 ## Project Overview
 
-Pitwall is an iOS app that helps F1 fans understand what is happening on track. Users can ask questions in natural language — about driver head-to-heads, championship standings, qualifying results, race recaps, upcoming race previews, or F1 terminology — and receive grounded, data-backed answers powered by IBM Watsonx AI.
+PitCrew is an iOS app that helps F1 fans understand what is happening on track. Users can ask questions in natural language — about driver head-to-heads, championship standings, qualifying results, race recaps, upcoming race previews, or F1 terminology — and receive grounded, data-backed answers powered by IBM Watsonx AI.
 
 The app also provides a full 2025 season schedule with per-race detail pages and past race results, a championship standings tab, a favourite driver dashboard card, conversation threads for organizing chats, circuit-aware AI briefings, full-text search across chat history, message sharing, a first-launch onboarding flow, local push notifications with AI-generated briefings, and multi-language support (English, Spanish, Chinese).
 
@@ -314,7 +314,7 @@ A "Load earlier messages" button appears at the top of the chat list whenever `h
 
 ### Push Notifications
 
-Pitwall schedules **local notifications** (no APNs certificate required) for each session of a race weekend. Notification content is AI-generated — the app calls `/chat/watsonx` in advance and uses the first line of the briefing reply (truncated to 150 characters) as the notification body.
+PitCrew schedules **local notifications** (no APNs certificate required) for each session of a race weekend. Notification content is AI-generated — the app calls `/chat/watsonx` in advance and uses the first line of the briefing reply (truncated to 150 characters) as the notification body.
 
 **Permission** is requested at app launch via `UNUserNotificationCenter.requestAuthorization`.
 
@@ -328,7 +328,7 @@ Pitwall schedules **local notifications** (no APNs certificate required) for eac
 | Qualifying | Saturday | 15:00 |
 | Race | Sunday (Race Day) | From Jolpica `time` field, or 14:00 |
 
-Each notification fires **30 minutes before** the session start. Notifications are identified as `pitwall-{round}-{session}` (e.g. `pitwall-5-Qualifying`) so they can be individually cancelled or replaced without affecting other sessions.
+Each notification fires **30 minutes before** the session start. Notifications are identified as `pitcrew-{round}-{session}` (e.g. `pitcrew-5-Qualifying`) so they can be individually cancelled or replaced without affecting other sessions.
 
 **User actions:**
 - **Bell icon (Schedule nav bar)** — `scheduleAllUpcoming(races:)` — schedules notifications for every race from the current date onwards in a single tap.
@@ -346,7 +346,7 @@ await NotificationManager.shared.scheduleNotifications(for: race)
 // Schedule notifications for all upcoming races
 await NotificationManager.shared.scheduleAllUpcoming(races: races)
 
-// Cancel all Pitwall notifications
+// Cancel all PitCrew notifications
 NotificationManager.shared.cancelAll()
 ```
 
@@ -408,8 +408,8 @@ Note: Only AI-generated responses change language. The app UI (labels, tab names
 ### Install
 
 ```bash
-conda create -n pitwall-backend python=3.11
-conda activate pitwall-backend
+conda create -n pitcrew-backend python=3.11
+conda activate pitcrew-backend
 pip install -r backend/requirements.txt
 ```
 
@@ -843,8 +843,8 @@ The `AgentRouter.classify_intent` method runs a single pass of keyword matching.
 │   └── requirements.txt
 └── frontend/
     ├── Package.swift
-    └── Sources/Pitwall/
-        ├── PitwallApp.swift            # App entry; notification permission
+    └── Sources/PitCrew/
+        ├── PitCrewApp.swift            # App entry; notification permission
         ├── RootView.swift              # Tab bar: Home, Schedule, Standings, Profile
         ├── SplashView.swift            # Splash → onboarding (first launch) → main
         ├── OnboardingView.swift        # 4-page first-launch walkthrough

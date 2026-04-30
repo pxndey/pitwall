@@ -10,7 +10,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "F1 Pitwall API"
+    app_name: str = "F1 PitCrew API"
     version: str = "0.1.0"
     database_url: str = "sqlite:///./app.db"
     secret_key: str = "change-me-in-production"

@@ -4,25 +4,25 @@
 import PackageDescription
 
 let package = Package(
-    name: "Pitwall",
+    name: "PitCrew",
     platforms: [
         .iOS(.v17),
     ],
     products: [
-        .executable(name: "Pitwall", targets: ["Pitwall"]),
+        .executable(name: "PitCrew", targets: ["PitCrew"]),
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "Pitwall",
+            name: "PitCrew",
             dependencies: [],
-            path: "Sources/Pitwall",
+            path: "Sources/PitCrew",
             exclude: ["Info.plist"]
         ),
         .testTarget(
-            name: "PitwallTests",
-            dependencies: ["Pitwall"],
-            path: "Tests/PitwallTests"
+            name: "PitCrewTests",
+            dependencies: ["PitCrew"],
+            path: "Tests/PitCrewTests"
         ),
     ],
     swiftLanguageModes: [.v6]

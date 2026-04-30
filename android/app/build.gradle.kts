@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.pitwall.app"
+    namespace = "com.pitcrew.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pitwall.app"
+        applicationId = "com.pitcrew.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

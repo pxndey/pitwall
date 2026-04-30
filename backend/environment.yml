@@ -1,4 +1,4 @@
-name: pitwall-backend
+name: pitcrew-backend
 channels:
   - conda-forge
 dependencies:
