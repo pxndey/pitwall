@@ -65,6 +65,18 @@ fastlane/test_output/
 timeline.xctimeline
 playground.xcworkspace
 
+# ─── Android / Gradle ─────────────────────────────────────────────────────────
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.iml
+.idea/
+*.apk
+*.aab
+*.ap_
+
 # ─── Reports / Summaries ──────────────────────────────────────────────────────
 SUMMARY_*.md
 CHANGES_*.md
