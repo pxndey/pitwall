@@ -12,6 +12,10 @@ services:
       - DATABASE_URL=sqlite:////app/data/app.db
     volumes:
       - pitcrew_data:/app/data
+    # Direct port exposure for pre-Traefik / debug access; remove or
+    # bind to 127.0.0.1 once Traefik is fronting this service.
+    ports:
+      - "0.0.0.0:8000:8000"
     networks:
       - proxy
     healthcheck:
