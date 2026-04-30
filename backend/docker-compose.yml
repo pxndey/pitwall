@@ -1,0 +1,35 @@
+services:
+  pitcrew-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pitcrew-api:latest
+    container_name: pitcrew-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/app.db
+    volumes:
+      - pitcrew_data:/app/data
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.pitcrew-api.rule=Host(`pitcrew-api.pxndey.com`)"
+      - "traefik.http.routers.pitcrew-api.entrypoints=web"
+      - "traefik.http.services.pitcrew-api.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  pitcrew_data:
