@@ -229,11 +229,12 @@ fun PreferenceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Text(label, color = tint, fontSize = 15.sp, modifier = Modifier.weight(1f))
         if (value.isNotEmpty()) {
@@ -253,7 +254,7 @@ fun EditPreferenceSheet(
     var value by remember { mutableStateOf(currentValue) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = PitCrewCard) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -290,7 +291,7 @@ fun LanguagePickerSheet(
     val languages = listOf("en" to "English", "es" to "Espanol", "zh" to "Chinese")
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = PitCrewCard) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             Text("AI Response Language", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             languages.forEach { (code, name) ->
@@ -328,8 +329,7 @@ fun UpdateDetailsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = PitCrewCard) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
         ) {
             Text("Update Details", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))

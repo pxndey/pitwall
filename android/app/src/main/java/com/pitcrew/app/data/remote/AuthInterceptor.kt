@@ -1,26 +1,31 @@
 package com.pitcrew.app.data.remote
 
-import com.pitcrew.app.data.repository.AuthRepository
+import android.content.Context
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.pitcrew.app.data.repository.dataStore
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
-import javax.inject.Inject
 
-class AuthInterceptor @Inject constructor(
-    private val authRepository: AuthRepository,
+class AuthInterceptor(
+    private val context: Context,
 ) : Interceptor {
+
+    private val tokenKey = stringPreferencesKey("access_token")
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
 
-        // Skip auth header for public endpoints
         val path = original.url.encodedPath
         if (path.endsWith("/login") || path.endsWith("/signup")) {
             return chain.proceed(original)
         }
 
-        val token = runBlocking { authRepository.getToken().firstOrNull() }
+        val token = runBlocking {
+            context.dataStore.data.map { it[tokenKey] }.firstOrNull()
+        }
 
         val request = if (token != null) {
             original.newBuilder()

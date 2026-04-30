@@ -61,7 +61,7 @@ fun RaceContextChatSheet(
                 if (isLoading) {
                     item {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp).padding(start = 4.dp),
+                            modifier = Modifier.padding(start = 4.dp).size(20.dp),
                             color = PitCrewRed,
                             strokeWidth = 2.dp,
                         )

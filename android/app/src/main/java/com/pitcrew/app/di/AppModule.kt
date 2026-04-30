@@ -7,25 +7,24 @@ import com.pitcrew.app.data.remote.ApiService
 import com.pitcrew.app.data.remote.AuthInterceptor
 import com.pitcrew.app.data.remote.JolpicaService
 import com.pitcrew.app.data.remote.WebSocketManager
-import com.pitcrew.app.data.repository.AuthRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import com.pitcrew.app.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
-import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "http://10.0.2.2:8000/"
+    private val BASE_URL: String get() = BuildConfig.API_BASE_URL
     private const val JOLPICA_URL = "https://api.jolpi.ca/ergast/"
 
     @Provides
@@ -34,10 +33,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(
+    fun provideAuthInterceptor(
         @ApplicationContext context: Context,
-        apiService: ApiService,
-    ): AuthRepository = AuthRepository(context, apiService)
+    ): AuthInterceptor = AuthInterceptor(context)
 
     @Provides
     @Singleton

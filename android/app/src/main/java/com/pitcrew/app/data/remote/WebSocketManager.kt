@@ -1,6 +1,7 @@
 package com.pitcrew.app.data.remote
 
 import com.google.gson.Gson
+import com.pitcrew.app.BuildConfig
 import com.pitcrew.app.data.remote.model.ChatHistoryItem
 import com.pitcrew.app.data.remote.model.WebSocketInbound
 import com.pitcrew.app.data.remote.model.WebSocketOutbound
@@ -11,22 +12,18 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
-import javax.inject.Inject
-import javax.inject.Singleton
-
 sealed class StreamEvent {
     data class Token(val content: String) : StreamEvent()
     data class Done(val fullContent: String) : StreamEvent()
     data class Error(val message: String) : StreamEvent()
 }
 
-@Singleton
-class WebSocketManager @Inject constructor(
+class WebSocketManager(
     private val okHttpClient: OkHttpClient,
     private val gson: Gson,
 ) {
     companion object {
-        private const val WS_URL = "ws://10.0.2.2:8000/api/chat/ws"
+        private val WS_URL: String get() = "${BuildConfig.WS_BASE_URL}api/chat/ws"
     }
 
     fun stream(
